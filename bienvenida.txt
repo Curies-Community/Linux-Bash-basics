@@ -1,0 +1,3 @@
+¡Bienvenida/o a la carpeta del curso de Linux de Curies Community!
+Aquí vas a practicar pwd, ls, cd, cat, cp, mv y rm.
+Pista: hay un archivo oculto. ¿Lo encuentras?

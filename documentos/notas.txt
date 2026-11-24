@@ -1,0 +1,3 @@
+Linux = el kernel
+GNU = las herramientas
+GNU/Linux = el sistema operativo completo
