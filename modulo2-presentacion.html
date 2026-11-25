@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Módulo 2 · Bash scripting · v4</title>
+
+<!-- Tipografías: Inter (lectura) y JetBrains Mono (código).
+     Si no hay internet, se usan las fuentes de respaldo del sistema. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* =====================================================================
+   GUÍA RÁPIDA DE EDICIÓN
+   ---------------------------------------------------------------------
+   1) COLORES Y FUENTES  → cambia las variables de :root (abajo).
+   2) TEXTOS             → busca en el <body> el comentario
+                           "DIAPOSITIVA N" y edita lo que está dentro.
+   3) NUEVA DIAPOSITIVA  → copia un bloque <section class="slide"> ...
+                           </section> completo y pégalo donde quieras.
+                           El contador y la barra de progreso se
+                           actualizan solos.
+   4) NAVEGACIÓN         → flechas ← →, barra espaciadora, Inicio/Fin,
+                           tecla F = pantalla completa.
+   ===================================================================== */
+
+/* ---------- 1. PALETA Y TIPOGRAFÍA (edita aquí) ---------- */
+:root{
+  /* Fondos */
+  --bg:        #0D1117;   /* fondo principal tipo consola */
+  --bg-2:      #161B22;   /* paneles y barra inferior */
+  --surface:   #1E1E2E;   /* tarjetas y ventanas de terminal */
+  --surface-2: #262637;   /* tarjetas resaltadas / hover */
+  --border:    #30363D;   /* bordes sutiles */
+
+  /* Texto */
+  --text:       #E6EDF3;  /* texto principal (alto contraste) */
+  --text-muted: #8B949E;  /* texto secundario */
+  --text-dim:   #6E7681;  /* notas pequeñas */
+
+  /* Acentos */
+  --green:       #00FF66; /* verde terminal: prompt, éxito, “nuestra ruta” */
+  --green-soft:  #7CFFB2;
+  --blue:        #367BF0; /* azul Kali */
+  --blue-soft:   #8AB4FF;
+  --orange:      #E95420; /* naranja Ubuntu */
+  --orange-soft: #FF9A6B;
+  --yellow:      #F2CC60; /* advertencias y tips */
+  --red:         #FF5F56; /* peligro / errores */
+
+  /* Fuentes */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, Consolas, monospace;
+
+  --radius: 14px;
+}
+
+/* ---------- 2. BASE ---------- */
+*{ box-sizing:border-box; margin:0; padding:0; }
+html,body{ height:100%; background:var(--bg); color:var(--text); font-family:var(--font-sans); overflow:hidden; }
+code, pre, .mono{ font-family:var(--font-mono); }
+
+/* ---------- 3. ESCENARIO 16:9 ----------
+   Todas las diapositivas miden 1280×720 y se escalan con JavaScript
+   para caber en cualquier pantalla (laptop, proyector o Google Meet). */
+.viewport{ position:fixed; inset:0 0 56px 0; }
+.stage{
+  position:absolute; top:50%; left:50%;
+  width:1280px; height:720px;
+  transform-origin:center center;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(54,123,240,.10), transparent 40%),
+    radial-gradient(circle at 10% 90%, rgba(0,255,102,.06), transparent 40%),
+    var(--bg);
+  border:1px solid var(--border);
+  border-radius:18px;
+  overflow:hidden;
+}
+/* Cuadrícula sutil de fondo, estilo “pantalla” */
+.stage::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+                   linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size:40px 40px;
+}
+
+/* Marca en la esquina inferior izquierda de cada diapositiva */
+.brand{
+  position:absolute; left:64px; bottom:22px; z-index:5;
+  font:500 13px var(--font-mono); color:var(--text-dim); letter-spacing:.04em;
+}
+.brand b{ color:var(--green); font-weight:600; }
+
+/* ---------- 4. DIAPOSITIVAS ---------- */
+.slide{
+  position:absolute; inset:0;
+  padding:52px 64px 60px;
+  display:flex; flex-direction:column; gap:22px;
+  opacity:0; visibility:hidden; transform:translateX(24px);
+  transition:opacity .35s ease, transform .35s ease, visibility .35s;
+}
+.slide.active{ opacity:1; visibility:visible; transform:none; }
+.slide.prev  { transform:translateX(-24px); }
+
+/* Títulos */
+.kicker{ font:600 15px var(--font-mono); color:var(--green); letter-spacing:.08em; text-transform:uppercase; }
+.kicker::before{ content:"$ "; color:var(--text-dim); }
+h1{ font-size:64px; line-height:1.05; font-weight:800; letter-spacing:-.02em; }
+h2{ font-size:40px; line-height:1.15; font-weight:700; letter-spacing:-.01em; }
+h3{ font-size:22px; font-weight:700; margin-bottom:8px; }
+p, li{ font-size:20px; line-height:1.5; color:var(--text); }
+.lead{ font-size:22px; color:var(--text-muted); max-width:1000px; }
+.muted{ color:var(--text-muted); }
+.small{ font-size:16px; }
+.hl-green{ color:var(--green); } .hl-blue{ color:var(--blue-soft); }
+.hl-orange{ color:var(--orange-soft); } .hl-yellow{ color:var(--yellow); } .hl-red{ color:var(--red); }
+
+/* Código en línea */
+code.c{ background:var(--surface); border:1px solid var(--border); padding:2px 8px; border-radius:6px; font-size:.92em; color:var(--green-soft); }
+
+/* Rejillas */
+.grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+.grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.grid-4{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+.fill{ flex:1; min-height:0; }
+.center{ align-items:center; justify-content:center; text-align:center; }
+
+/* Tarjetas */
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:22px 24px;
+}
+.card p, .card li{ font-size:18px; }
+.card .icon{ font-size:30px; margin-bottom:8px; display:block; }
+.card.green { border-top:4px solid var(--green); }
+.card.blue  { border-top:4px solid var(--blue); }
+.card.orange{ border-top:4px solid var(--orange); }
+.card.yellow{ border-top:4px solid var(--yellow); }
+.card.red   { border-top:4px solid var(--red); }
+
+/* Caja de analogía (💡) */
+.analogy{
+  display:flex; gap:16px; align-items:flex-start;
+  background:linear-gradient(90deg, rgba(242,204,96,.12), rgba(242,204,96,.03));
+  border:1px solid rgba(242,204,96,.35); border-left:5px solid var(--yellow);
+  border-radius:12px; padding:16px 20px;
+}
+.analogy::before{ content:"💡"; font-size:26px; line-height:1; }
+.analogy p{ font-size:19px; }
+.analogy b{ color:var(--yellow); }
+
+/* Caja de peligro (⚠️) */
+.danger{
+  display:flex; gap:16px; align-items:flex-start;
+  background:rgba(255,95,86,.08); border:1px solid rgba(255,95,86,.4);
+  border-left:5px solid var(--red); border-radius:12px; padding:16px 20px;
+}
+.danger::before{ content:"⚠️"; font-size:24px; line-height:1.1; }
+.danger p{ font-size:18px; }
+
+/* Etiquetas pequeñas */
+.tag{ display:inline-block; font:600 13px var(--font-mono); padding:4px 10px; border-radius:999px; border:1px solid var(--border); color:var(--text-muted); }
+.tag.green { color:var(--green);  border-color:rgba(0,255,102,.4); }
+.tag.blue  { color:var(--blue-soft); border-color:rgba(54,123,240,.5); }
+.tag.orange{ color:var(--orange-soft); border-color:rgba(233,84,32,.5); }
+
+/* ---------- 5. VENTANA DE TERMINAL ---------- */
+.terminal{
+  background:#0A0E14; border:1px solid var(--border); border-radius:12px; overflow:hidden;
+  box-shadow:0 12px 40px rgba(0,0,0,.45);
+}
+.term-bar{ display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--bg-2); border-bottom:1px solid var(--border); }
+.dot{ width:12px; height:12px; border-radius:50%; }
+.dot.r{ background:#FF5F56; } .dot.y{ background:#FFBD2E; } .dot.g{ background:#27C93F; }
+.term-title{ margin-left:10px; font:500 13px var(--font-mono); color:var(--text-dim); }
+.term-body{ padding:16px 20px; font:400 17px/1.6 var(--font-mono); color:var(--text); white-space:pre; overflow:hidden; }
+.term-body .pr { color:var(--green); font-weight:600; }  /* prompt */
+.term-body .out{ color:var(--text-muted); }               /* salida */
+.term-body .cm { color:var(--text-dim); font-style:italic; } /* comentario */
+.term-body .dir{ color:var(--blue-soft); font-weight:600; }  /* carpetas */
+.term-body .exe{ color:var(--green-soft); font-weight:600; } /* ejecutables */
+.term-body .err{ color:var(--red); }
+
+/* ---------- 6. TARJETAS DE COMANDO ---------- */
+.cmd{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; display:flex; flex-direction:column; gap:10px; }
+.cmd .name{ font:700 30px var(--font-mono); color:var(--green); }
+.cmd .what{ font-size:18px; font-weight:600; }
+.cmd .like{ font-size:16px; color:var(--yellow); }
+.cmd .ex{ font:500 15px var(--font-mono); background:#0A0E14; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); white-space:pre; }
+
+/* ---------- 7. PORTADA Y SEPARADORES ---------- */
+.cover{ justify-content:center; gap:26px; }
+.cover h1 span{ color:var(--green); }
+.cover .meta{ display:flex; gap:28px; flex-wrap:wrap; font:500 17px var(--font-mono); color:var(--text-muted); }
+.cover .meta b{ color:var(--text); }
+
+.divider{ justify-content:center; gap:18px; }
+.divider .num{ font:700 160px/1 var(--font-mono); color:transparent; -webkit-text-stroke:2px var(--green); opacity:.9; }
+.divider h2{ font-size:56px; }
+.divider ul{ list-style:none; display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; }
+
+/* ---------- 8. DIAGRAMA: KERNEL vs GNU/LINUX ---------- */
+.stack{
+  display:grid;
+  grid-template-columns:54px 54px 1fr 64px 1fr;
+  grid-template-rows:repeat(5, 1fr);
+  column-gap:10px; row-gap:10px; height:100%;
+}
+.layer{ border-radius:12px; padding:10px 18px; display:flex; flex-direction:column; justify-content:center; border:1px solid var(--border); background:var(--surface); }
+.layer b{ font-size:19px; }
+.layer span{ font:400 14px var(--font-mono); color:var(--text-muted); }
+.layer.kernel{ background:linear-gradient(90deg, rgba(0,255,102,.18), rgba(0,255,102,.05)); border-color:var(--green); }
+.layer.gnu   { background:linear-gradient(90deg, rgba(54,123,240,.22), rgba(54,123,240,.06)); border-color:var(--blue); }
+.layer.apps  { background:linear-gradient(90deg, rgba(233,84,32,.20), rgba(233,84,32,.05)); border-color:var(--orange); }
+.layer.hw    { background:var(--bg-2); border-style:dashed; }
+.layer.you   { background:transparent; border-style:dashed; }
+.arrow-r{ display:flex; align-items:center; justify-content:center; font:700 26px var(--font-mono); color:var(--text-dim); }
+.car{ border-radius:12px; padding:10px 18px; display:flex; align-items:center; gap:14px; background:rgba(242,204,96,.07); border:1px solid rgba(242,204,96,.3); }
+.car .e{ font-size:28px; }
+.car b{ font-size:18px; color:var(--yellow); }
+.car span{ font-size:14px; color:var(--text-muted); display:block; }
+.bracket{
+  border:2px solid; border-right:none; border-radius:10px 0 0 10px;
+  display:flex; align-items:center; justify-content:center;
+  writing-mode:vertical-rl; transform:rotate(180deg);
+  font:700 14px var(--font-mono); letter-spacing:.05em;
+}
+/* Al rotar 180°, el borde visible queda a la derecha: lo corregimos */
+.bracket{ border-right:2px solid; border-left:none; border-radius:0 10px 10px 0; }
+.bracket.distro{ color:var(--orange-soft); border-color:var(--orange); grid-column:1; grid-row:2 / 5; }
+.bracket.gnul  { color:var(--blue-soft);   border-color:var(--blue);   grid-column:2; grid-row:3 / 5; }
+
+/* ---------- 9. DIAGRAMAS SVG (árboles) ---------- */
+svg.diagram{ width:100%; height:100%; display:block; }
+svg.diagram text{ font-family:var(--font-mono); fill:var(--text); }
+svg .node      { fill:var(--surface); stroke:var(--border); stroke-width:1.5; }
+svg .node.root { fill:var(--surface-2); stroke:var(--text-muted); }
+svg .node.on   { fill:rgba(0,255,102,.12); stroke:var(--green); stroke-width:2.5; }
+svg .node.ubu  { fill:rgba(233,84,32,.18); stroke:var(--orange); stroke-width:3; }
+svg .node.kali { fill:rgba(54,123,240,.20); stroke:var(--blue); stroke-width:3; }
+svg .node.off  { opacity:.55; }
+svg .edge      { fill:none; stroke:var(--border); stroke-width:2; }
+svg .edge.on   { stroke:var(--green); stroke-width:3; }
+svg .edge.rel  { stroke:var(--orange); stroke-width:2.5; stroke-dasharray:7 6; }
+svg .t-big   { font-size:18px; font-weight:700; }
+svg .t-mid   { font-size:15px; font-weight:600; }
+svg .t-small { font-size:12px; fill:var(--text-muted) !important; }
+svg .t-green { fill:var(--green) !important; }
+svg .t-orange{ fill:var(--orange-soft) !important; }
+svg .t-blue  { fill:var(--blue-soft) !important; }
+
+/* Panel lateral de rutas */
+.path-box{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 18px; }
+.path-box .lbl{ font:600 13px var(--font-mono); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+.path-box .val{ font:600 19px var(--font-mono); word-break:break-all; }
+
+/* ---------- 10. DIAGRAMA: ANATOMÍA DEL PROMPT ---------- */
+.prompt-anatomy{ display:flex; justify-content:center; gap:4px; flex-wrap:wrap; }
+.tok{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+.tok .t{ font:700 44px var(--font-mono); padding:6px 10px; border-radius:10px; border:2px solid transparent; }
+.tok .l{ font:600 14px var(--font-sans); color:var(--text-muted); text-align:center; max-width:150px; line-height:1.3; }
+.tok .l::before{ content:"▲"; display:block; font-size:10px; margin-bottom:2px; }
+.tok.u .t{ color:var(--green);      border-color:rgba(0,255,102,.5); }
+.tok.a .t{ color:var(--text-muted); }
+.tok.h .t{ color:var(--blue-soft);  border-color:rgba(54,123,240,.6); }
+.tok.d .t{ color:var(--yellow);     border-color:rgba(242,204,96,.6); }
+.tok.s .t{ color:var(--orange-soft);border-color:rgba(233,84,32,.6); }
+
+/* ---------- 11. FLUJO (chips con flechas) ---------- */
+.flow{ display:flex; align-items:stretch; justify-content:center; gap:10px; }
+.flow .step{ flex:1; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; text-align:center; }
+.flow .step .e{ font-size:30px; display:block; }
+.flow .step b{ display:block; font-size:17px; margin-top:4px; }
+.flow .step span{ font-size:14px; color:var(--text-muted); }
+.flow .step.hl{ border-color:var(--green); background:rgba(0,255,102,.07); }
+.flow .to{ align-self:center; font:700 24px var(--font-mono); color:var(--green); }
+
+/* ---------- 12. TABLA ESTILO TERMINAL (ls -l) ---------- */
+table.ls{ width:100%; border-collapse:collapse; font:400 16px var(--font-mono); }
+table.ls th{ font:600 12px var(--font-sans); text-transform:uppercase; letter-spacing:.05em; padding:6px 8px; text-align:left; border-bottom:2px solid; }
+table.ls td{ padding:6px 8px; color:var(--text); border-bottom:1px solid rgba(48,54,61,.5); }
+table.ls .c1{ color:var(--yellow);      border-color:var(--yellow); }
+table.ls .c2{ color:var(--text-dim);    border-color:var(--text-dim); }
+table.ls .c3{ color:var(--green-soft);  border-color:var(--green); }
+table.ls .c4{ color:var(--blue-soft);   border-color:var(--blue); }
+table.ls .c5{ color:var(--orange-soft); border-color:var(--orange); }
+table.ls .c6{ color:var(--text-muted);  border-color:var(--text-muted); }
+table.ls .c7{ color:var(--text);        border-color:var(--text); }
+table.ls tr.hidden-file td.c7{ color:var(--yellow); }
+table.ls .isdir{ color:var(--blue-soft); font-weight:700; }
+
+/* ---------- 13. DIAGRAMA: PERMISOS ---------- */
+.perm{ display:flex; justify-content:center; gap:14px; }
+.perm .blk{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+.perm .chars{ font:700 52px var(--font-mono); padding:8px 18px; border-radius:12px; border:2px solid; letter-spacing:.12em; }
+.perm .who{ font-weight:700; font-size:17px; }
+.perm .ex{ font-size:14px; color:var(--text-muted); text-align:center; max-width:220px; }
+.perm .k0 .chars{ color:var(--text-muted); border-color:var(--border); }
+.perm .k1 .chars{ color:var(--green);      border-color:var(--green); background:rgba(0,255,102,.07); }
+.perm .k2 .chars{ color:var(--blue-soft);  border-color:var(--blue);  background:rgba(54,123,240,.08); }
+.perm .k3 .chars{ color:var(--orange-soft);border-color:var(--orange);background:rgba(233,84,32,.08); }
+.rwx{ display:flex; gap:16px; justify-content:center; }
+.rwx div{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 16px; font-size:17px; }
+.rwx b{ font-family:var(--font-mono); color:var(--green); font-size:22px; margin-right:6px; }
+
+/* ---------- 14. AGENDA / LÍNEA DE TIEMPO ---------- */
+.agenda{ display:flex; flex-direction:column; gap:12px; }
+.agenda .row{ display:grid; grid-template-columns:110px 70px 1fr; align-items:center; gap:16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 20px; }
+.agenda .time{ font:600 16px var(--font-mono); color:var(--text-muted); }
+.agenda .id  { font:700 20px var(--font-mono); color:var(--green); }
+.agenda .row b{ font-size:20px; }
+.agenda .row span{ font-size:15px; color:var(--text-muted); display:block; }
+.week{ display:flex; gap:12px; }
+.week .day{ flex:1; border:1px solid var(--border); border-radius:12px; padding:12px 16px; background:var(--bg-2); }
+.week .day.today{ border-color:var(--green); background:rgba(0,255,102,.06); }
+.week .day small{ font:600 13px var(--font-mono); color:var(--text-muted); display:block; }
+.week .day b{ font-size:16px; }
+
+/* Lista con casillas */
+.checklist{ list-style:none; display:flex; flex-direction:column; gap:14px; }
+.checklist li{ display:flex; gap:14px; align-items:flex-start; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 18px; font-size:19px; }
+.checklist li::before{ content:"[✓]"; font:700 18px var(--font-mono); color:var(--green); }
+
+/* Pasos numerados (retos) */
+.steps{ list-style:none; counter-reset:paso; display:flex; flex-direction:column; gap:8px; }
+.steps li{ counter-increment:paso; display:flex; gap:12px; align-items:baseline; font-size:18px; }
+.steps li::before{ content:counter(paso); min-width:28px; height:28px; border-radius:50%; background:var(--green); color:#0D1117; font:700 15px var(--font-mono); display:inline-flex; align-items:center; justify-content:center; }
+
+/* Tabla de símbolos */
+.sym{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+.sym div{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px; text-align:center; }
+.sym b{ display:block; font:700 30px var(--font-mono); color:var(--green); }
+.sym span{ font-size:15px; color:var(--text-muted); }
+
+/* ---------- 15. CONTROLES (fuera del escenario) ---------- */
+.progress{ position:fixed; top:0; left:0; height:4px; background:linear-gradient(90deg, var(--green), var(--blue)); width:0; transition:width .35s ease; z-index:20; }
+.controls{
+  position:fixed; left:0; right:0; bottom:0; height:56px; z-index:20;
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:0 20px; background:var(--bg-2); border-top:1px solid var(--border);
+  font-family:var(--font-mono);
+}
+.controls .title{ color:var(--text-muted); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.controls .nav{ display:flex; align-items:center; gap:10px; }
+.controls button{
+  background:var(--surface); color:var(--text); border:1px solid var(--border);
+  border-radius:8px; padding:7px 14px; font:600 14px var(--font-mono); cursor:pointer;
+}
+.controls button:hover{ border-color:var(--green); color:var(--green); }
+.controls button:disabled{ opacity:.35; cursor:default; border-color:var(--border); color:var(--text); }
+.counter{ font-size:14px; color:var(--text); min-width:72px; text-align:center; }
+.counter b{ color:var(--green); }
+.hint{ color:var(--text-dim); font-size:12px; }
+@media (max-width:760px){ .hint, .controls .title{ display:none; } }
+
+/* =====================================================================
+   AGREGADOS DE LA VERSIÓN 2
+   ===================================================================== */
+
+/* Colores de las insignias de cada familia (hechas a mano, no logos oficiales) */
+:root{
+  --fam-debian: #00FF66;
+  --fam-redhat: #B392F0;
+  --fam-arch:   #39C5CF;
+}
+
+/* Íconos dibujados a mano (SVG) dentro de tarjetas */
+.ico{ width:46px; height:46px; stroke:currentColor; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; margin-bottom:8px; display:block; }
+.card.green  .ico{ color:var(--green); }
+.card.blue   .ico{ color:var(--blue-soft); }
+.card.red    .ico{ color:var(--red); }
+.card.orange .ico{ color:var(--orange-soft); }
+.card.yellow .ico{ color:var(--yellow); }
+.card .ico.muted{ color:var(--text-muted); }
+
+/* Insignia con iniciales (familias y distros) */
+.badge{ display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:11px; font:700 17px var(--font-mono); color:#0D1117; flex:none; }
+.badge.de{ background:var(--fam-debian); }
+.badge.rh{ background:var(--fam-redhat); }
+.badge.ar{ background:var(--fam-arch); }
+.badge.ub{ background:var(--orange); color:#fff; }
+.badge.ka{ background:var(--blue); color:#fff; }
+.badge.sm{ width:30px; height:30px; font-size:13px; border-radius:8px; }
+
+/* Insignias dentro de diagramas SVG */
+svg .bdg-de{ fill:var(--fam-debian); } svg .bdg-rh{ fill:var(--fam-redhat); } svg .bdg-ar{ fill:var(--fam-arch); }
+svg .bdg-ub{ fill:var(--orange); }     svg .bdg-ka{ fill:var(--blue); }      svg .bdg-pi{ fill:#7CFFB2; }
+svg.diagram text.bt{ fill:#0D1117; font-weight:700; font-size:14px; }
+svg.diagram text.bt.w{ fill:#fff; }
+
+/* Tarjetas de familia (diapositiva de usos) */
+.fam{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; display:flex; flex-direction:column; gap:12px; }
+.fam .head{ display:flex; align-items:center; gap:12px; }
+.fam .head b{ font-size:22px; }
+.fam .head div span{ display:block; font-size:14px; color:var(--text-muted); }
+.fam .use{ font-size:16px; color:var(--yellow); }
+.fam .d{ display:flex; gap:10px; align-items:flex-start; }
+.fam .d b{ font-size:16px; }
+.fam .d div span{ display:block; font-size:14px; color:var(--text-muted); line-height:1.35; }
+.fam.de{ border-top:4px solid var(--fam-debian); }
+.fam.rh{ border-top:4px solid var(--fam-redhat); }
+.fam.ar{ border-top:4px solid var(--fam-arch); }
+
+/* Diagrama de capas (cebolla) */
+svg .ring-you { fill:rgba(242,204,96,.07);  stroke:rgba(242,204,96,.5); stroke-width:2; }
+svg .ring-gnu { fill:rgba(54,123,240,.16);  stroke:var(--blue); stroke-width:2; }
+svg .ring-ker { fill:rgba(0,255,102,.14);   stroke:var(--green); stroke-width:2.5; }
+svg .ring-hw  { fill:#0A0E14;               stroke:var(--text-muted); stroke-width:2; stroke-dasharray:5 4; }
+svg .go   { fill:none; stroke:var(--green);  stroke-width:3; }
+svg .back { fill:none; stroke:var(--orange); stroke-width:3; stroke-dasharray:8 6; }
+svg .mk   { fill:var(--green); }
+svg .mk.o { fill:var(--orange); }
+svg.diagram text.mkt{ fill:#0D1117; font-weight:700; font-size:14px; }
+
+/* Lista numerada del viaje de un comando */
+.journey{ list-style:none; display:flex; flex-direction:column; gap:9px; }
+.journey li{ display:flex; gap:12px; align-items:flex-start; font-size:17px; line-height:1.4; }
+.journey li .n{ flex:none; width:28px; height:28px; border-radius:50%; background:var(--green); color:#0D1117; font:700 14px var(--font-mono); display:flex; align-items:center; justify-content:center; margin-top:1px; }
+.journey li .n.o{ background:var(--orange); }
+
+/* Flujo por niveles (terminal → shell → kernel → hardware) */
+.levels{ display:grid; grid-template-columns:1fr 28px 1fr 28px 1fr 28px 1fr 28px 1fr; align-items:stretch; }
+.levels .lv{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 12px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; }
+.levels .lv .ico{ margin:0; width:40px; height:40px; }
+.levels .lv b{ font-size:17px; }
+.levels .lv code{ font:600 13px var(--font-mono); background:#0A0E14; border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--green-soft); white-space:nowrap; }
+.levels .lv span{ font-size:13.5px; color:var(--text-muted); line-height:1.35; }
+.levels .lv.c1{ border-top:4px solid var(--yellow); }  .levels .lv.c1 .ico{ color:var(--yellow); }
+.levels .lv.c2{ border-top:4px solid var(--text-muted); } .levels .lv.c2 .ico{ color:var(--text); }
+.levels .lv.c3{ border-top:4px solid var(--blue); }    .levels .lv.c3 .ico{ color:var(--blue-soft); }
+.levels .lv.c4{ border-top:4px solid var(--green); }   .levels .lv.c4 .ico{ color:var(--green); }
+.levels .lv.c5{ border-top:4px dashed var(--text-muted); } .levels .lv.c5 .ico{ color:var(--text-muted); }
+.levels .ar{ display:flex; align-items:center; justify-content:center; font:700 22px var(--font-mono); color:var(--green); }
+.return-bar{ margin-top:8px; border:1px dashed var(--orange); border-radius:10px; padding:8px 14px; text-align:center; font-size:15px; color:var(--orange-soft); }
+
+/* Desglose de una ruta */
+.path-split{ display:flex; justify-content:center; align-items:flex-end; gap:4px; }
+.path-split .seg{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+.path-split .seg .t{ font:700 46px var(--font-mono); padding:6px 12px; border-radius:10px; border:2px solid; }
+.path-split .seg .l{ font-size:14px; color:var(--text-muted); text-align:center; max-width:190px; line-height:1.3; }
+.path-split .s1 .t{ color:var(--green); border-color:var(--green); }
+.path-split .s2 .t{ color:var(--blue-soft); border-color:var(--blue); }
+.path-split .s3 .t{ color:var(--yellow); border-color:var(--yellow); }
+
+/* Símbolos con ejemplo */
+.sym2{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+.sym2 div{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px; text-align:center; display:flex; flex-direction:column; gap:6px; }
+.sym2 b{ font:700 30px var(--font-mono); color:var(--green); }
+.sym2 span{ font-size:14.5px; color:var(--text); line-height:1.3; }
+.sym2 code{ font:500 13.5px var(--font-mono); background:#0A0E14; border-radius:6px; padding:4px; color:var(--green-soft); }
+
+/* Leyenda de colores de ls */
+.legend{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+.legend div{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:6px; }
+.legend .sw{ font:700 18px var(--font-mono); }
+.legend span:not(.sw){ font-size:15px; color:var(--text-muted); }
+.ls-blue{ color:#6CA6FF; font-weight:700; } .ls-white{ color:var(--text); }
+.ls-green{ color:#5BE37D; font-weight:700; } .ls-red{ color:#FF6B6B; font-weight:700; }
+
+/* Mini diagramas cp / mv / rm */
+.cmd-visual{ background:#0A0E14; border:1px solid var(--border); border-radius:10px; padding:6px; }
+svg.mini{ width:100%; height:auto; display:block; }
+svg.mini text{ font-family:var(--font-mono); fill:var(--text-muted); font-size:12px; }
+svg.mini .fold{ fill:rgba(54,123,240,.14); stroke:var(--blue); stroke-width:1.5; }
+svg.mini .file{ fill:var(--surface-2); stroke:var(--text); stroke-width:1.5; }
+svg.mini .file.new{ stroke:var(--green); fill:rgba(0,255,102,.12); }
+svg.mini .ghost{ fill:none; stroke:var(--text-dim); stroke-width:1.5; stroke-dasharray:4 3; }
+svg.mini .a-g{ stroke:var(--green); stroke-width:2.5; fill:none; }
+svg.mini .a-r{ stroke:var(--red); stroke-width:2.5; fill:none; }
+svg.mini .x{ stroke:var(--red); stroke-width:3; }
+svg.mini text.cap{ fill:var(--text); font-size:12px; }
+
+/* Casos de destino (antes → después) */
+.cases{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+.case{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; display:flex; flex-direction:column; gap:10px; }
+.case .q{ font-size:17px; font-weight:700; }
+.case .cmdl{ font:600 15px var(--font-mono); background:#0A0E14; border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--green-soft); }
+.case .ba{ display:grid; grid-template-columns:1fr 24px 1fr; align-items:center; gap:6px; }
+.case .box{ background:#0A0E14; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font:500 14px/1.6 var(--font-mono); white-space:pre; }
+.case .box small{ display:block; font:600 11px var(--font-sans); text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim); }
+.case .to{ text-align:center; color:var(--green); font:700 18px var(--font-mono); }
+.case .res{ font-size:15.5px; color:var(--text-muted); line-height:1.4; }
+.case.warn{ border-color:rgba(255,95,86,.55); }
+.case.warn .q{ color:var(--red); }
+.nw{ color:var(--green); font-weight:700; }
+.gone{ color:var(--red); text-decoration:line-through; }
+
+/* Resumen final */
+.summary{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.summary .card h3{ font-size:19px; }
+.summary .card p{ font-size:16px; color:var(--text-muted); }
+.thanks{ text-align:center; font-size:34px; font-weight:800; }
+.thanks span{ color:var(--green); }
+
+.prompt-k .tok .t{ font-size:34px; padding:4px 8px; }
+.prompt-k .tok{ gap:6px; }
+.prompt-k .tok .l{ font-size:13px; }
+
+/* =====================================================================
+   AGREGADOS DE LA VERSIÓN 3
+   ===================================================================== */
+
+/* Nodos del árbol de la carpeta curies-linux */
+svg .n-dir  { fill:rgba(54,123,240,.16); stroke:var(--blue); stroke-width:1.8; }
+svg .n-file { fill:var(--surface); stroke:var(--border); stroke-width:1.5; }
+svg .n-hid  { fill:rgba(242,204,96,.08); stroke:var(--yellow); stroke-width:1.8; stroke-dasharray:6 4; }
+svg .n-exe  { fill:rgba(0,255,102,.10); stroke:var(--green); stroke-width:1.8; }
+svg .n-root { fill:rgba(0,255,102,.14); stroke:var(--green); stroke-width:2.5; }
+svg.diagram text.td { fill:#8AB4FF; font-weight:700; }
+svg.diagram text.tf { fill:var(--text); }
+svg.diagram text.th { fill:var(--yellow); }
+svg.diagram text.tx { fill:var(--green); font-weight:700; }
+
+/* Encabezado de diapositiva de comando: nombre grande + qué hace */
+.cmd-head{ display:flex; align-items:baseline; gap:22px; }
+.cmd-head .big{ font:700 64px/1 var(--font-mono); color:var(--green); }
+.cmd-head .what{ font-size:28px; font-weight:700; }
+.cmd-head .full{ font:500 16px var(--font-mono); color:var(--text-muted); }
+
+/* Variaciones de un comando (tarjetas pequeñas con ejemplo) */
+.vars{ display:grid; gap:14px; }
+.vars.c2{ grid-template-columns:repeat(2,1fr); }
+.vars.c3{ grid-template-columns:repeat(3,1fr); }
+.var{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
+.var .k{ font:700 20px var(--font-mono); color:var(--green); }
+.var .d{ font-size:16px; color:var(--text); }
+.var pre{ font:500 14.5px/1.55 var(--font-mono); background:#0A0E14; border:1px solid var(--border); border-radius:8px; padding:8px 10px; white-space:pre; overflow:hidden; color:var(--text); }
+.var pre .pr{ color:var(--green); font-weight:600; }
+.var pre .out{ color:var(--text-muted); }
+.var pre .err{ color:var(--red); }
+.var.warn{ border-color:rgba(255,95,86,.5); }
+.var.warn .k{ color:var(--red); }
+
+/* Teclas para la diapositiva de atajos */
+.kbd{ display:inline-block; font:700 18px var(--font-mono); padding:6px 12px; border-radius:8px; background:var(--surface-2); border:1px solid var(--border); border-bottom-width:3px; color:var(--text); }
+
+/* Prompt: tokens un poco más chicos */
+.prompt-k .tok .t{ font-size:40px; padding:4px 8px; }
+.prompt-k .tok{ gap:8px; }
+.prompt-k .tok .l{ font-size:14px; }
+
+/* Tabla Linux ↔ Windows */
+table.wt{ width:100%; border-collapse:collapse; font-size:17px; }
+table.wt th{ text-align:left; font:600 13px var(--font-sans); text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); padding:8px 12px; border-bottom:2px solid var(--border); }
+table.wt td{ padding:7px 12px; border-bottom:1px solid rgba(48,54,61,.6); }
+table.wt td:first-child{ font:700 17px var(--font-mono); color:var(--green); }
+table.wt td.w{ font:600 16px var(--font-mono); color:var(--blue-soft); }
+table.wt td.m{ color:var(--text-muted); font-size:16px; }
+
+.fam .head b{ font-size:24px; } .fam .head div span{ font-size:16px; } .fam .d b{ font-size:18px; } .fam .d div span{ font-size:16px; } .fam{ gap:16px; padding:22px; }
+
+/* ===== MÓDULO 2: anatomía de un script ===== */
+.anat{ display:grid; grid-template-columns:1fr 1.25fr; }
+.anat .code{ background:#0A0E14; border:1px solid var(--border); border-radius:12px 0 0 12px; padding:12px 0; font:600 21px var(--font-mono); }
+.anat .ln{ display:flex; align-items:center; height:46px; padding:0 18px; border-left:5px solid transparent; white-space:pre; }
+.anat .ln .no{ color:var(--text-dim); width:32px; font-weight:400; }
+.anat .l1{ color:var(--yellow); border-color:var(--yellow); }
+.anat .l2{ color:var(--text-muted); font-style:italic; border-color:var(--text-muted); }
+.anat .l3{ color:var(--blue-soft); border-color:var(--blue); }
+.anat .l4{ color:var(--green-soft); border-color:var(--green); }
+.anat .l5{ color:var(--orange-soft); border-color:var(--orange); }
+.anat .tags{ background:var(--surface); border:1px solid var(--border); border-left:none; border-radius:0 12px 12px 0; padding:12px 0; }
+.anat .tg{ display:flex; align-items:center; gap:12px; height:46px; padding:0 18px; font-size:16px; }
+.anat .tg b{ min-width:120px; font-size:17px; }
+.anat .t1 b{ color:var(--yellow); } .anat .t2 b{ color:var(--text-muted); } .anat .t3 b{ color:var(--blue-soft); }
+.anat .t4 b{ color:var(--green-soft); } .anat .t5 b{ color:var(--orange-soft); }
+
+/* ===== MÓDULO 2 v2: mapas y archivos antes/después ===== */
+.tree{ background:#0A0E14; border:1px solid var(--border); border-radius:12px; padding:14px 18px; }
+.tree .tt{ font:600 12px var(--font-sans); text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); margin-bottom:6px; }
+.tree pre{ font:500 16px/1.6 var(--font-mono); color:var(--text); white-space:pre; }
+.tree .td{ color:#6CA6FF; font-weight:700; }
+.tree .nw, .fbox .nw{ color:var(--green); font-weight:700; }
+.fbox{ display:grid; grid-template-columns:1fr 60px 1fr; align-items:center; }
+.fbox .file{ background:#0A0E14; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.fbox .fn{ background:var(--surface-2); padding:8px 14px; font:600 14px var(--font-mono); color:var(--text-muted); }
+.fbox pre{ padding:14px 16px; font:500 18px/1.6 var(--font-mono); color:var(--text); min-height:110px; white-space:pre; }
+.fbox .gone{ color:var(--red); text-decoration:line-through; opacity:.75; }
+.fbox .arrow{ text-align:center; font:700 34px var(--font-mono); color:var(--green); }
+
+/* ===== MÓDULO 2 v3: mapas paso a paso, permisos visuales ===== */
+svg .n-new{ fill:rgba(0,255,102,.10); stroke:var(--green); stroke-width:2; stroke-dasharray:6 4; }
+svg.diagram text.tn{ fill:var(--green); font-weight:700; }
+.mapbox{ min-height:0; position:relative; }
+.legend2{ position:absolute; right:8px; bottom:0; display:flex; gap:14px; font:500 12px var(--font-mono); color:var(--text-muted); }
+.legend2 .lg::before{ content:""; display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-1px; border:1.5px solid; }
+.legend2 .dir::before{ border-color:var(--blue); background:rgba(54,123,240,.16); }
+.legend2 .file::before{ border-color:var(--border); background:var(--surface); }
+.legend2 .hid::before{ border-color:var(--yellow); border-style:dashed; }
+.legend2 .new::before{ border-color:var(--green); border-style:dashed; background:rgba(0,255,102,.1); }
+.frag{ opacity:0; transition:opacity .3s; }
+.frag.shown{ opacity:1; }
+.fragc{ display:none; } .fragc.shown{ display:flex; }
+.pstr{ display:inline-flex; gap:4px; font:700 26px var(--font-mono); }
+.pstr .pg{ padding:2px 6px; border-radius:6px; border:1.5px solid var(--border); color:var(--text-muted); }
+.pstr .g1{ border-color:var(--green); } .pstr .g2{ border-color:var(--blue); } .pstr .g3{ border-color:var(--orange); }
+.pstr i{ font-style:normal; } .pstr i.on{ color:#0D1117; background:var(--green); border-radius:3px; }
+.pleg{ display:flex; gap:12px; justify-content:center; font:600 14px var(--font-mono); }
+.pleg span{ padding:3px 10px; border-radius:6px; border:1.5px solid; } .pleg .g1{ border-color:var(--green); color:var(--green); } .pleg .g2{ border-color:var(--blue); color:var(--blue-soft); } .pleg .g3{ border-color:var(--orange); color:var(--orange-soft); }
+.ptable{ display:flex; flex-direction:column; gap:12px; }
+.phead{ display:grid; grid-template-columns:1.1fr 1.3fr 40px 1.3fr; font:600 12px var(--font-sans); text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim); padding:0 16px; }
+.prow{ display:grid; grid-template-columns:1.1fr 1.3fr 40px 1.3fr; align-items:center; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+.pcmd{ display:flex; flex-direction:column; gap:6px; } .pcmd code{ font-size:16px; } .pcmd span{ font-size:14px; color:var(--text-muted); }
+.pside{ display:flex; align-items:center; gap:10px; font:700 16px var(--font-mono); }
+.parr{ text-align:center; color:var(--green); font:700 26px var(--font-mono); }
+.runflow{ display:grid; grid-template-columns:1fr 90px 1fr; align-items:center; margin-top:6px; }
+.rf{ background:#0A0E14; border:1px solid var(--border); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:4px; font:500 14px var(--font-mono); }
+.rf b{ color:var(--yellow); } .rf.ok{ border-color:var(--green); } .rf.ok span{ color:var(--green-soft); }
+.rfa, .afa{ text-align:center; color:var(--green); font:700 28px var(--font-mono); }
+.rfa small, .afa small{ display:block; font:500 12px var(--font-sans); color:var(--text-muted); }
+.var.struct{ border-color:rgba(0,255,102,.45); background:rgba(0,255,102,.05); }
+.lbl2{ font:600 11px var(--font-sans); text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim); }
+.argflow{ display:grid; grid-template-columns:1fr 170px 1fr; align-items:center; }
+</style>
+</head>
+
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="viewport">
+<main class="stage" id="stage">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <marker id="flecha" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#E95420"/></marker>
+      <marker id="flecha-verde" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#00FF66"/></marker>
+    </defs>
+  </svg>
+
+  <div class="brand"><b>Curies Community</b> · Linux &amp; Bash desde cero · Módulo 2</div>
+  <!-- ============================================================
+       DIAPOSITIVA 1 · PORTADA
+       ============================================================ -->
+  <section class="slide cover" data-title="Portada">
+    <p class="kicker">curies community</p>
+    <h1>Linux <span>desde cero</span></h1>
+    <p class="lead">Módulo 2 · Crear archivos y Bash scripting</p>
+    <div class="terminal" style="max-width:760px">
+      <div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">usuario@maquina: ~/curies-linux</span></div>
+      <pre class="term-body"><span class="pr">usuario@maquina:~/curies-linux$</span> echo "Hoy vamos a automatizar"
+<span class="out">Hoy vamos a automatizar</span></pre>
+    </div>
+  </section>
+  <!-- ============================================================
+       DIAPOSITIVA 2 · TEMAS DE HOY
+       ============================================================ -->
+  <section class="slide" data-title="¿Qué veremos hoy?" style="justify-content:center">
+    <p class="kicker">temas de hoy</p>
+    <h2>¿Qué veremos hoy?</h2>
+    <div class="grid-3">
+      <div class="card green">
+        <h3><span class="hl-green">1</span> Crear y escribir</h3>
+        <ul style="padding-left:20px"><li><code class="c">mkdir</code> <code class="c">touch</code></li><li><code class="c">echo</code> <code class="c">&gt;</code> <code class="c">&gt;&gt;</code></li><li>Permisos y <code class="c">chmod</code></li></ul>
+      </div>
+      <div class="card blue">
+        <h3><span class="hl-blue">2</span> Bash scripting</h3>
+        <ul style="padding-left:20px"><li>Tu primer script</li><li>Variables y argumentos</li><li>Ejecutar un script</li></ul>
+      </div>
+      <div class="card orange">
+        <h3><span class="hl-orange">3</span> Tu propio comando</h3>
+        <ul style="padding-left:20px"><li>Funciones</li><li><code class="c">subir_repo</code></li><li>SSH y el reto</li></ul>
+      </div>
+    </div>
+    <div class="week">
+      <div class="day"><small>M1</small><b>Fundamentos de Linux y la terminal</b></div>
+      <div class="day today"><small>M2 · HOY</small><b>Crear archivos y Bash scripting</b></div>
+      <div class="day"><small>M3</small><b>Laboratorio y entrega en GitHub</b></div>
+    </div>
+  </section>
+  <!-- ============================================================
+       DIAPOSITIVA 3 · CALENTAMIENTO (ejercicio de ayer)
+       ============================================================ -->
+  <section class="slide" data-title="Calentamiento" style="justify-content:center">
+    <p class="kicker">calentamiento</p>
+    <h2>Calentamiento: el ejercicio de ayer</h2>
+    <div class="card">
+      <ol class="steps" style="gap:12px">
+        <li><span>Carpeta limpia: <code class="c">cd ~</code>, <code class="c">rm -rf curies-linux</code> y clona otra vez:<br><code class="c">git clone https://github.com/Curies-Community/Linux-Bash-basics.git curies-linux</code></span></li>
+        <li><span>Entra y confirma dónde estás: <code class="c">cd curies-linux</code> y <code class="c">pwd</code></span></li>
+        <li><span>Encuentra el archivo oculto y léelo: <code class="c">ls -a</code> y <code class="c">cat</code></span></li>
+        <li><span>Copia <code class="c">documentos/notas.txt</code> a <code class="c">fotos/</code></span></li>
+        <li><span>Borra <code class="c">papelera/borrame.txt</code></span></li>
+        <li><span>Vuelve a clonarla limpia para empezar la clase (paso 1)</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- DIAPOSITIVA · mkdir (estructura → ejemplo → mapa: avanza con la flecha) -->
+  <section class="slide" data-title="mkdir">
+    <p class="kicker">1 · crear y escribir</p>
+    <div class="cmd-head"><span class="big">mkdir</span><span class="what">Crea una carpeta</span><span class="full">make directory</span></div>
+    <div class="var struct"><span class="lbl2">estructura</span><span class="k" style="font-size:24px">mkdir carpeta</span><span class="d">Crea una carpeta nueva dentro de la carpeta donde estás.</span></div>
+    <div style="display:flex; flex-direction:column; gap:10px"><div class="terminal frag" data-f="1"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">ejemplo</span></div><pre class="term-body" style="font-size:15px"><span class="pr">$</span> mkdir musica
+<span class="pr">$</span> ls
+<span class="out">bienvenida.txt  <span class="ls-blue">documentos</span>  <span class="ls-blue">fotos</span>  LICENSE  <span class="ls-blue">musica</span>  <span class="ls-blue">papelera</span>  <span class="ls-blue">proyectos</span>  README.md</span></pre></div></div>
+    <div class="fill mapbox"><svg class="diagram" viewBox="0 0 796 160" preserveAspectRatio="xMidYMin meet"><rect class="n-root" x="303.0" y="10" width="190" height="38" rx="10"/><text x="398.0" y="30" text-anchor="middle" dominant-baseline="middle" class="t-big t-green">curies-linux/</text><path class="edge" d="M74.0 70 H718.0"/><path class="edge" d="M398.0 48 V70"/><path class="edge" d="M74.0 70 V95"/><rect class="n-dir" x="20.0" y="95" width="108" height="34" rx="8"/><text x="74.0" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">documentos/</text><path class="edge" d="M172.5 70 V95"/><rect class="n-dir" x="138.0" y="95" width="69" height="34" rx="8"/><text x="172.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">fotos/</text><path class="edge" d="M350.5 70 V95"/><rect class="n-dir" x="304.0" y="95" width="93" height="34" rx="8"/><text x="350.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">papelera/</text><path class="edge" d="M457.5 70 V95"/><rect class="n-dir" x="407.0" y="95" width="101" height="34" rx="8"/><text x="457.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">proyectos/</text><path class="edge" d="M584.0 70 V95"/><rect class="n-file" x="518.0" y="95" width="132" height="34" rx="8"/><text x="584.0" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid tf" style="font-size:13px">bienvenida.txt</text><path class="edge" d="M718.0 70 V95"/><rect class="n-hid" x="660.0" y="95" width="116" height="34" rx="8"/><text x="718.0" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid th" style="font-size:13px">.secreto.txt</text><g class="frag" data-f="2"><path class="edge" d="M255.5 70 V95"/><rect class="n-new" x="217.0" y="95" width="77" height="34" rx="8"/><text x="255.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid tn" style="font-size:13px">musica/</text></g></svg>
+      <div class="legend2"><span class="lg dir">carpeta</span><span class="lg file">archivo</span><span class="lg hid">oculto</span><span class="lg new">nuevo</span></div>
+    </div>
+    
+  </section>
+
+  <!-- DIAPOSITIVA · mkdir varias (estructura → ejemplo → mapa: avanza con la flecha) -->
+  <section class="slide" data-title="mkdir varias">
+    <p class="kicker">1 · crear y escribir</p>
+    <div class="cmd-head"><span class="big">mkdir</span><span class="what">Varias carpetas de un jalón</span></div>
+    <div class="var struct"><span class="lbl2">estructura</span><span class="k" style="font-size:24px">mkdir carpeta otracarpeta</span><span class="d">Escribe varios nombres separados por espacio: crea una carpeta por cada nombre.</span></div>
+    <div style="display:flex; flex-direction:column; gap:10px"><div class="terminal frag" data-f="1"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">ejemplo</span></div><pre class="term-body" style="font-size:15px"><span class="pr">$</span> mkdir videos libros
+<span class="pr">$</span> ls
+<span class="out">bienvenida.txt  <span class="ls-blue">documentos</span>  <span class="ls-blue">fotos</span>  LICENSE  <span class="ls-blue">libros</span>  <span class="ls-blue">musica</span>  <span class="ls-blue">papelera</span>  <span class="ls-blue">proyectos</span>  README.md  <span class="ls-blue">videos</span></span></pre></div></div>
+    <div class="fill mapbox"><svg class="diagram" viewBox="0 0 970 160" preserveAspectRatio="xMidYMin meet"><rect class="n-root" x="390.0" y="10" width="190" height="38" rx="10"/><text x="485.0" y="30" text-anchor="middle" dominant-baseline="middle" class="t-big t-green">curies-linux/</text><path class="edge" d="M74.0 70 H892.0"/><path class="edge" d="M485.0 48 V70"/><path class="edge" d="M74.0 70 V95"/><rect class="n-dir" x="20.0" y="95" width="108" height="34" rx="8"/><text x="74.0" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">documentos/</text><path class="edge" d="M172.5 70 V95"/><rect class="n-dir" x="138.0" y="95" width="69" height="34" rx="8"/><text x="172.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">fotos/</text><path class="edge" d="M342.5 70 V95"/><rect class="n-dir" x="304.0" y="95" width="77" height="34" rx="8"/><text x="342.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">musica/</text><path class="edge" d="M437.5 70 V95"/><rect class="n-dir" x="391.0" y="95" width="93" height="34" rx="8"/><text x="437.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">papelera/</text><path class="edge" d="M544.5 70 V95"/><rect class="n-dir" x="494.0" y="95" width="101" height="34" rx="8"/><text x="544.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">proyectos/</text><path class="edge" d="M758.0 70 V95"/><rect class="n-file" x="692.0" y="95" width="132" height="34" rx="8"/><text x="758.0" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid tf" style="font-size:13px">bienvenida.txt</text><path class="edge" d="M892.0 70 V95"/><rect class="n-hid" x="834.0" y="95" width="116" height="34" rx="8"/><text x="892.0" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid th" style="font-size:13px">.secreto.txt</text><g class="frag" data-f="2"><path class="edge" d="M255.5 70 V95"/><rect class="n-new" x="217.0" y="95" width="77" height="34" rx="8"/><text x="255.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid tn" style="font-size:13px">libros/</text><path class="edge" d="M643.5 70 V95"/><rect class="n-new" x="605.0" y="95" width="77" height="34" rx="8"/><text x="643.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid tn" style="font-size:13px">videos/</text></g></svg>
+      <div class="legend2"><span class="lg dir">carpeta</span><span class="lg file">archivo</span><span class="lg hid">oculto</span><span class="lg new">nuevo</span></div>
+    </div>
+    
+  </section>
+
+  <!-- DIAPOSITIVA · mkdir -p (estructura → ejemplo → mapa: avanza con la flecha) -->
+  <section class="slide" data-title="mkdir -p">
+    <p class="kicker">1 · crear y escribir</p>
+    <div class="cmd-head"><span class="big">mkdir -p</span><span class="what">Crea toda la ruta de un jalón</span><span class="full">-p = parents</span></div>
+    <div class="var struct"><span class="lbl2">estructura</span><span class="k" style="font-size:24px">mkdir -p carpeta/subcarpeta/otra</span><span class="d">Crea también las carpetas de en medio que no existan.</span></div>
+    <div style="display:flex; flex-direction:column; gap:10px"><div class="terminal frag" data-f="1"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">ejemplo</span></div><pre class="term-body" style="font-size:15px"><span class="pr">$</span> mkdir -p nuevo/app/src</pre></div></div>
+    <div class="fill mapbox"><svg class="diagram" viewBox="0 0 1093 248" preserveAspectRatio="xMidYMin meet"><rect class="n-root" x="451.5" y="10" width="190" height="38" rx="10"/><text x="546.5" y="30" text-anchor="middle" dominant-baseline="middle" class="t-big t-green">curies-linux/</text><path class="edge" d="M74.0 70 H1015.0"/><path class="edge" d="M546.5 48 V70"/><path class="edge" d="M74.0 70 V95"/><rect class="n-dir" x="20.0" y="95" width="108" height="34" rx="8"/><text x="74.0" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">documentos/</text><path class="edge" d="M172.5 70 V95"/><rect class="n-dir" x="138.0" y="95" width="69" height="34" rx="8"/><text x="172.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">fotos/</text><path class="edge" d="M255.5 70 V95"/><rect class="n-dir" x="217.0" y="95" width="77" height="34" rx="8"/><text x="255.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">libros/</text><path class="edge" d="M342.5 70 V95"/><rect class="n-dir" x="304.0" y="95" width="77" height="34" rx="8"/><text x="342.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">musica/</text><path class="edge" d="M560.5 70 V95"/><rect class="n-dir" x="514.0" y="95" width="93" height="34" rx="8"/><text x="560.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">papelera/</text><path class="edge" d="M667.5 70 V95"/><rect class="n-dir" x="617.0" y="95" width="101" height="34" rx="8"/><text x="667.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">proyectos/</text><path class="edge" d="M766.5 70 V95"/><rect class="n-dir" x="728.0" y="95" width="77" height="34" rx="8"/><text x="766.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">videos/</text><path class="edge" d="M881.0 70 V95"/><rect class="n-file" x="815.0" y="95" width="132" height="34" rx="8"/><text x="881.0" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid tf" style="font-size:13px">bienvenida.txt</text><path class="edge" d="M1015.0 70 V95"/><rect class="n-hid" x="957.0" y="95" width="116" height="34" rx="8"/><text x="1015.0" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid th" style="font-size:13px">.secreto.txt</text><g class="frag" data-f="2"><path class="edge" d="M425.5 70 V95"/><rect class="n-new" x="391.0" y="95" width="69" height="34" rx="8"/><text x="425.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid tn" style="font-size:13px">nuevo/</text><path class="edge" d="M397.0 129 V165 H403.0"/><rect class="n-new" x="403.0" y="150" width="53" height="30" rx="7"/><text x="429.5" y="166" text-anchor="middle" dominant-baseline="middle" class="t-mid tn" style="font-size:13px">app/</text><path class="edge" d="M411.0 173 V209 H417.0"/><rect class="n-new" x="417.0" y="194" width="53" height="30" rx="7"/><text x="443.5" y="210" text-anchor="middle" dominant-baseline="middle" class="t-mid tn" style="font-size:13px">src/</text></g></svg>
+      <div class="legend2"><span class="lg dir">carpeta</span><span class="lg file">archivo</span><span class="lg hid">oculto</span><span class="lg new">nuevo</span></div>
+    </div>
+    <div class="var warn frag fragc" data-f="3"><span class="k">Sin -p ✗</span><span class="d">Como <code class="c">nuevo</code> y <code class="c">app</code> no existen, mkdir no puede crear <code class="c">src</code>. Si la carpeta de arriba ya existe (<code class="c">mkdir documentos/app</code>), no hace falta -p.</span><pre><span class="pr">$</span> mkdir nuevo/app/src
+<span class="err">mkdir: cannot create directory 'nuevo/app/src': No such file or directory</span></pre></div>
+  </section>
+
+  <!-- DIAPOSITIVA · touch (estructura → ejemplo → mapa: avanza con la flecha) -->
+  <section class="slide" data-title="touch">
+    <p class="kicker">1 · crear y escribir</p>
+    <div class="cmd-head"><span class="big">touch</span><span class="what">Crea archivos vacíos</span></div>
+    <div class="var struct"><span class="lbl2">estructura</span><span class="k" style="font-size:24px">touch archivo  ·  touch carpeta/archivo</span><span class="d">Crea el archivo sin contenido (0 bytes), aquí o dentro de otra carpeta. Si ya existe, solo actualiza su fecha.</span></div>
+    <div style="display:flex; flex-direction:column; gap:10px"><div class="terminal frag" data-f="1"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">ejemplo</span></div><pre class="term-body" style="font-size:15px"><span class="pr">$</span> touch saludo.txt musica/lista.txt videos/clases.txt</pre></div></div>
+    <div class="fill mapbox"><svg class="diagram" viewBox="0 0 1244 248" preserveAspectRatio="xMidYMin meet"><rect class="n-root" x="527.0" y="10" width="190" height="38" rx="10"/><text x="622.0" y="30" text-anchor="middle" dominant-baseline="middle" class="t-big t-green">curies-linux/</text><path class="edge" d="M74.0 70 H1166.0"/><path class="edge" d="M622.0 48 V70"/><path class="edge" d="M74.0 70 V95"/><rect class="n-dir" x="20.0" y="95" width="108" height="34" rx="8"/><text x="74.0" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">documentos/</text><path class="edge" d="M172.5 70 V95"/><rect class="n-dir" x="138.0" y="95" width="69" height="34" rx="8"/><text x="172.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">fotos/</text><path class="edge" d="M255.5 70 V95"/><rect class="n-dir" x="217.0" y="95" width="77" height="34" rx="8"/><text x="255.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">libros/</text><path class="edge" d="M342.5 70 V95"/><rect class="n-dir" x="304.0" y="95" width="77" height="34" rx="8"/><text x="342.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">musica/</text><path class="edge" d="M441.5 70 V95"/><rect class="n-dir" x="407.0" y="95" width="69" height="34" rx="8"/><text x="441.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">nuevo/</text><path class="edge" d="M413.0 129 V165 H419.0"/><rect class="n-dir" x="419.0" y="150" width="53" height="30" rx="7"/><text x="445.5" y="166" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">app/</text><path class="edge" d="M427.0 173 V209 H433.0"/><rect class="n-dir" x="433.0" y="194" width="53" height="30" rx="7"/><text x="459.5" y="210" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">src/</text><path class="edge" d="M576.5 70 V95"/><rect class="n-dir" x="530.0" y="95" width="93" height="34" rx="8"/><text x="576.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">papelera/</text><path class="edge" d="M683.5 70 V95"/><rect class="n-dir" x="633.0" y="95" width="101" height="34" rx="8"/><text x="683.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">proyectos/</text><path class="edge" d="M782.5 70 V95"/><rect class="n-dir" x="744.0" y="95" width="77" height="34" rx="8"/><text x="782.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid td" style="font-size:13px">videos/</text><path class="edge" d="M921.0 70 V95"/><rect class="n-file" x="855.0" y="95" width="132" height="34" rx="8"/><text x="921.0" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid tf" style="font-size:13px">bienvenida.txt</text><path class="edge" d="M1166.0 70 V95"/><rect class="n-hid" x="1108.0" y="95" width="116" height="34" rx="8"/><text x="1166.0" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid th" style="font-size:13px">.secreto.txt</text><g class="frag" data-f="2"><path class="edge" d="M310.0 129 V165 H316.0"/><rect class="n-new" x="316.0" y="150" width="93" height="30" rx="7"/><text x="362.5" y="166" text-anchor="middle" dominant-baseline="middle" class="t-mid tn" style="font-size:13px">lista.txt</text><path class="edge" d="M750.0 129 V165 H756.0"/><rect class="n-new" x="756.0" y="150" width="101" height="30" rx="7"/><text x="806.5" y="166" text-anchor="middle" dominant-baseline="middle" class="t-mid tn" style="font-size:13px">clases.txt</text><path class="edge" d="M1047.5 70 V95"/><rect class="n-new" x="997.0" y="95" width="101" height="34" rx="8"/><text x="1047.5" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid tn" style="font-size:13px">saludo.txt</text></g></svg>
+      <div class="legend2"><span class="lg dir">carpeta</span><span class="lg file">archivo</span><span class="lg hid">oculto</span><span class="lg new">nuevo</span></div>
+    </div>
+    
+  </section>
+  <!-- ============================================================
+       DIAPOSITIVA 7 · echo >
+       ============================================================ -->
+  <section class="slide" data-title="echo >" style="justify-content:center">
+    <p class="kicker">1 · crear y escribir</p>
+    <div class="cmd-head"><span class="big">echo &gt;</span><span class="what">Escribe en un archivo y reemplaza lo que tenía</span></div>
+    <div class="var"><span class="k">echo 'texto' &gt; archivo</span>
+<pre><span class="pr">$</span> echo 'Texto nuevo' &gt; documentos/notas.txt</pre></div>
+    <div class="fbox">
+      <div class="file"><div class="fn">notas.txt · antes</div><pre><span class="gone">Linux = el kernel
+GNU = las herramientas
+GNU/Linux = el sistema operativo completo</span></pre></div>
+      <div class="arrow">→</div>
+      <div class="file"><div class="fn">notas.txt · después</div><pre><span class="nw">Texto nuevo</span></pre></div>
+    </div>
+    <div class="grid-2">
+      <div class="danger"><p>Una flecha <code class="c">&gt;</code> <b>borra todo</b> lo que tenía el archivo y deja solo el texto nuevo.</p></div>
+      <div class="card"><p>Si el archivo no existe, <code class="c">&gt;</code> lo crea: no hace falta <code class="c">touch</code> antes.</p></div>
+    </div>
+  </section>
+  <!-- ============================================================
+       DIAPOSITIVA 8 · echo >>
+       ============================================================ -->
+  <section class="slide" data-title="echo >>" style="justify-content:center">
+    <p class="kicker">1 · crear y escribir</p>
+    <div class="cmd-head"><span class="big">echo &gt;&gt;</span><span class="what">Agrega al final, sin borrar</span></div>
+    <div class="var"><span class="k">echo 'texto' &gt;&gt; archivo</span>
+<pre><span class="pr">$</span> echo 'Otra línea' &gt;&gt; documentos/notas.txt
+<span class="pr">$</span> cat documentos/notas.txt</pre></div>
+    <div class="fbox">
+      <div class="file"><div class="fn">notas.txt · antes</div><pre>Texto nuevo</pre></div>
+      <div class="arrow">→</div>
+      <div class="file"><div class="fn">notas.txt · después</div><pre>Texto nuevo
+<span class="nw">Otra línea</span></pre></div>
+    </div>
+    <p class="small muted" style="text-align:center">En la terminal usa comillas simples <code class="c">' '</code>: en Kali, un <code class="c">!</code> entre comillas dobles da error.</p>
+  </section>
+  <!-- ============================================================
+       DIAPOSITIVA 9 · PERMISOS
+       ============================================================ -->
+  <section class="slide" data-title="Permisos" style="justify-content:center">
+    <p class="kicker">1 · permisos</p>
+    <h2>Permisos: se leen en bloques de 3 letras</h2>
+    <div class="perm">
+      <div class="blk k0"><span class="chars">-</span><span class="who">tipo</span><span class="ex">- archivo · d carpeta</span></div>
+      <div class="blk k1"><span class="chars">rwx</span><span class="who">dueño</span><span class="ex">tú</span></div>
+      <div class="blk k2"><span class="chars">r-x</span><span class="who">grupo</span><span class="ex">tu grupo de usuarios</span></div>
+      <div class="blk k3"><span class="chars">r-x</span><span class="who">otros</span><span class="ex">todos los demás</span></div>
+    </div>
+    <p class="muted" style="text-align:center; font-size:17px">Siempre van en orden <b>r w x</b>. Cuando vuelve a aparecer una <b>r</b>, empieza el siguiente grupo. Un <b>-</b> significa “no tiene ese permiso”.</p>
+    <div class="card" style="padding:10px 16px">
+      <table class="wt">
+        <thead><tr><th>Letra</th><th>En un archivo</th><th>En una carpeta</th></tr></thead>
+        <tbody>
+          <tr><td>r</td><td>Ver su contenido (<code class="c">cat</code>)</td><td>Ver qué hay adentro (<code class="c">ls</code>)</td></tr>
+          <tr><td>w</td><td>Modificarlo (<code class="c">echo &gt;</code>)</td><td>Crear o borrar cosas adentro</td></tr>
+          <tr><td>x</td><td>Ejecutarlo como programa</td><td>Entrar (<code class="c">cd</code>)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="slide" data-title="chmod +x y -x" style="justify-content:center">
+    <p class="kicker">1 · permisos</p>
+    <div class="cmd-head"><span class="big">chmod</span><span class="what">Dar (+) o quitar (-) permisos</span><span class="full">change mode</span></div>
+    <div class="pleg"><span class="g1">dueño</span><span class="g2">grupo</span><span class="g3">otros</span></div>
+    <div class="ptable">
+      <div class="phead"><span>comando</span><span>antes</span><span></span><span>después</span></div>
+      <div class="prow"><div class="pcmd"><code class="c">chmod +x saludo.txt</code><span>agrega x a los tres grupos</span></div>
+      <div class="pside"><span class="pstr"><span class="pg g0"><i class="">-</i></span><span class="pg g1"><i class="">r</i><i class="">w</i><i class="">-</i></span><span class="pg g2"><i class="">r</i><i class="">-</i><i class="">-</i></span><span class="pg g3"><i class="">r</i><i class="">-</i><i class="">-</i></span></span> <span class="ls-white">saludo.txt</span></div><div class="parr">→</div>
+      <div class="pside"><span class="pstr"><span class="pg g0"><i class="">-</i></span><span class="pg g1"><i class="">r</i><i class="">w</i><i class="on">x</i></span><span class="pg g2"><i class="">r</i><i class="">-</i><i class="on">x</i></span><span class="pg g3"><i class="">r</i><i class="">-</i><i class="on">x</i></span></span> <span class="ls-green">saludo.txt</span></div></div>
+      <div class="prow"><div class="pcmd"><code class="c">chmod -x saludo.txt</code><span>quita x a los tres grupos</span></div>
+      <div class="pside"><span class="pstr"><span class="pg g0"><i class="">-</i></span><span class="pg g1"><i class="">r</i><i class="">w</i><i class="on">x</i></span><span class="pg g2"><i class="">r</i><i class="">-</i><i class="on">x</i></span><span class="pg g3"><i class="">r</i><i class="">-</i><i class="on">x</i></span></span> <span class="ls-green">saludo.txt</span></div><div class="parr">→</div>
+      <div class="pside"><span class="pstr"><span class="pg g0"><i class="">-</i></span><span class="pg g1"><i class="">r</i><i class="">w</i><i class="">-</i></span><span class="pg g2"><i class="">r</i><i class="">-</i><i class="">-</i></span><span class="pg g3"><i class="">r</i><i class="">-</i><i class="">-</i></span></span> <span class="ls-white">saludo.txt</span></div></div>
+    </div>
+    <div class="grid-2"><div class="card"><p>Sin letra antes del <b>+</b> o <b>-</b>, el cambio se aplica a <b>los tres bloques</b>. Si un bloque ya tenía la x, se queda igual.</p></div><div class="card green"><p>Funciona con cualquier letra: <code class="c">+r</code> <code class="c">-r</code> <code class="c">+w</code> <code class="c">-w</code> <code class="c">+x</code> <code class="c">-x</code>. Con x, <code class="c">ls</code> lo pinta de <span class="ls-green">verde</span>.</p></div></div>
+  </section>
+
+  <section class="slide" data-title="chmod u+x y -w" style="justify-content:center">
+    <p class="kicker">1 · permisos</p>
+    <div class="cmd-head"><span class="big">chmod</span><span class="what">A quién y qué permiso</span></div>
+    <div class="vars c3"><div class="var"><span class="k">u+x</span><span class="d">u = user: solo el dueño</span></div><div class="var"><span class="k">g+x</span><span class="d">g = group: solo el grupo</span></div><div class="var"><span class="k">o+x</span><span class="d">o = others: solo los demás</span></div></div>
+    <div class="ptable">
+      <div class="phead"><span>comando</span><span>antes</span><span></span><span>después</span></div>
+      <div class="prow"><div class="pcmd"><code class="c">chmod u+x saludo.txt</code><span>x solo para el dueño</span></div>
+      <div class="pside"><span class="pstr"><span class="pg g0"><i class="">-</i></span><span class="pg g1"><i class="">r</i><i class="">w</i><i class="">-</i></span><span class="pg g2"><i class="">r</i><i class="">-</i><i class="">-</i></span><span class="pg g3"><i class="">r</i><i class="">-</i><i class="">-</i></span></span> <span class="ls-white">saludo.txt</span></div><div class="parr">→</div>
+      <div class="pside"><span class="pstr"><span class="pg g0"><i class="">-</i></span><span class="pg g1"><i class="">r</i><i class="">w</i><i class="on">x</i></span><span class="pg g2"><i class="">r</i><i class="">-</i><i class="">-</i></span><span class="pg g3"><i class="">r</i><i class="">-</i><i class="">-</i></span></span> <span class="ls-green">saludo.txt</span></div></div>
+      <div class="prow"><div class="pcmd"><code class="c">chmod -w saludo.txt</code><span>igual que -x, pero quita la w</span></div>
+      <div class="pside"><span class="pstr"><span class="pg g0"><i class="">-</i></span><span class="pg g1"><i class="">r</i><i class="on">w</i><i class="">x</i></span><span class="pg g2"><i class="">r</i><i class="">-</i><i class="">-</i></span><span class="pg g3"><i class="">r</i><i class="">-</i><i class="">-</i></span></span> <span class="ls-green">saludo.txt</span></div><div class="parr">→</div>
+      <div class="pside"><span class="pstr"><span class="pg g0"><i class="">-</i></span><span class="pg g1"><i class="">r</i><i class="">-</i><i class="">x</i></span><span class="pg g2"><i class="">r</i><i class="">-</i><i class="">-</i></span><span class="pg g3"><i class="">r</i><i class="">-</i><i class="">-</i></span></span> <span class="ls-green">saludo.txt</span></div></div>
+    </div>
+    <div class="var warn"><span class="k">Sin w, no se puede escribir ✗</span>
+<pre><span class="pr">$</span> echo 'hola' &gt; saludo.txt
+<span class="err">permission denied: saludo.txt</span>
+<span class="pr">$</span> chmod +w saludo.txt     <span class="cm"># lo devuelve</span></pre></div>
+  </section>
+
+  <section class="slide" data-title="¿Para qué sirve un script?" style="justify-content:center">
+    <p class="kicker">2 · bash scripting</p>
+    <h2>¿Qué es un script y para qué sirve?</h2>
+    <p class="lead">Un archivo <code class="c">.sh</code> con comandos guardados. La terminal los ejecuta <b>uno por uno, de arriba hacia abajo</b>.</p>
+    <div class="grid-2">
+      <div class="var"><span class="k" style="color:var(--text-muted)">Sin script: lo escribes a mano cada vez</span>
+<pre><span class="pr">$</span> mkdir -p proyecto/src proyecto/docs
+<span class="pr">$</span> touch proyecto/src/main.sh
+<span class="pr">$</span> echo '# Mi proyecto' &gt; proyecto/README.md</pre></div>
+      <div class="var"><span class="k">Con script: un solo comando</span>
+<pre><span class="pr">$</span> ./nuevo_proyecto.sh</pre>
+        <div class="runflow">
+          <div class="rf"><b>nuevo_proyecto.sh</b><span>1 · mkdir -p ...</span><span>2 · touch ...</span><span>3 · echo ...</span></div>
+          <div class="rfa">⟶<small>se ejecutan<br>en orden</small></div>
+          <div class="rf ok"><b>Resultado</b><span>✓ carpetas</span><span>✓ archivo</span><span>✓ README</span></div>
+        </div></div>
+    </div>
+  </section>
+  <!-- ============================================================
+       DIAPOSITIVA 12 · TU PRIMER SCRIPT · PASO 1 (abrir nano)
+       ============================================================ -->
+  <section class="slide" data-title="Tu primer script: abrir nano" style="justify-content:center">
+    <p class="kicker">2 · tu primer script · paso 1</p>
+    <div class="cmd-head"><span class="big">nano</span><span class="what">Editor de texto dentro de la terminal</span></div><div class="var struct"><span class="lbl2">estructura</span><span class="k" style="font-size:24px">nano archivo</span><span class="d">Abre el archivo para escribir en él. Si no existe, lo crea.</span></div>
+    <div class="var">
+<pre style="font-size:17px"><span class="pr">$</span> cd ~/curies-linux
+<span class="pr">$</span> mkdir mis-scripts      <span class="cm"># una carpeta para tus scripts</span>
+<span class="pr">$</span> cd mis-scripts
+<span class="pr">$</span> nano mi-script.sh      <span class="cm"># abre el editor (si no existe, lo crea)</span></pre></div>
+    <p class="muted" style="font-size:17px">Al dar Enter, la terminal se convierte en el editor <b>nano</b>, vacío:</p>
+    <div class="terminal">
+      <pre class="term-body" style="font-size:14px; padding:0"><span style="display:block; background:#E6EDF3; color:#0D1117; padding:4px 16px">  GNU nano                       mi-script.sh                         </span><span style="display:block; padding:12px 20px; line-height:1.6">_
+
+
+</span><span style="display:block; padding:6px 16px; border-top:1px solid #30363D"><span style="background:#E6EDF3; color:#0D1117">^O</span> Guardar     <span style="background:#E6EDF3; color:#0D1117">^X</span> Salir</span></pre>
+    </div>
+  </section>
+  <!-- ============================================================
+       DIAPOSITIVA 14 · ANATOMÍA DE LO QUE ESCRIBISTE
+       ============================================================ -->
+  <section class="slide" data-title="Anatomía de un script" style="justify-content:center">
+    <p class="kicker">2 · tu primer script · paso 2</p>
+    <h2>Anatomía: lo que vas a escribir en nano</h2>
+    <div class="anat">
+      <div class="code">
+        <div class="ln l1"><span class="no">1</span>#!/bin/bash</div>
+        <div class="ln l2"><span class="no">2</span># Mi primer script</div>
+        <div class="ln l0"><span class="no">3</span>&nbsp;</div>
+        <div class="ln l3"><span class="no">4</span>NOMBRE="Curies"</div>
+        <div class="ln l4"><span class="no">5</span>echo "Hola $NOMBRE"</div>
+        <div class="ln l5"><span class="no">6</span>pwd</div>
+      </div>
+      <div class="tags">
+        <div class="tg t1"><b>Shebang</b><span>Siempre en la línea 1: “ejecuta esto con Bash”.</span></div>
+        <div class="tg t2"><b>Comentario</b><span>Empieza con <code class="c">#</code>. Bash lo ignora: es una nota para personas.</span></div>
+        <div class="tg t0">&nbsp;</div>
+        <div class="tg t3"><b>Variable</b><span>Guarda un valor con un nombre (la vemos en un momento).</span></div>
+        <div class="tg t4"><b>echo</b><span>Muestra texto; <code class="c">$NOMBRE</code> usa la variable.</span></div>
+        <div class="tg t5"><b>Comandos</b><span>Cualquier comando que ya conoces.</span></div>
+      </div>
+    </div>
+    <div class="card yellow"><p><b>¿El <code class="c">#!/bin/bash</code> se pone solo?</b> No. nano abre el archivo vacío: tú lo escribes siempre en la línea 1.</p></div>
+  </section>
+  <!-- ============================================================
+       DIAPOSITIVA 15 · VARIABLES
+       ============================================================ -->
+  <section class="slide" data-title="Variables" style="justify-content:center">
+    <p class="kicker">2 · tu primer script · paso 3</p>
+    <h2>Variables: guardar un valor con un nombre</h2>
+    <div class="vars c2">
+      <div class="var"><span class="k">NOMBRE="Curies"</span><span class="d"><b>Crear:</b> nombre, <b>=</b> pegado y el valor. Se escriben en MAYÚSCULAS por costumbre, para distinguirlas de los comandos.</span></div>
+      <div class="var"><span class="k">echo "Hola $NOMBRE"</span><span class="d"><b>Usar:</b> un <b>$</b> antes del nombre.</span>
+<pre><span class="out">Hola Curies</span></pre></div>
+    </div>
+    <div class="vars c2">
+      <div class="var warn"><span class="k">Espacios junto al = ✗</span><span class="d">Bash cree que NOMBRE es un comando.</span>
+<pre><span class="pr">$</span> NOMBRE = "Curies"
+<span class="err">NOMBRE: command not found</span></pre></div>
+      <div class="var warn"><span class="k">Comillas simples ✗</span><span class="d">Con <code class="c">' '</code> no se lee la variable; usa <code class="c">" "</code>.</span>
+<pre><span class="pr">$</span> echo 'Hola $NOMBRE'
+<span class="out">Hola $NOMBRE</span></pre></div>
+    </div>
+  </section>
+
+  <section class="slide" data-title="Tu primer script: escribir y guardar">
+    <p class="kicker">2 · tu primer script · paso 4</p>
+    <h2>Escribe, guarda y sal</h2>
+    <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:16px">
+      <div class="terminal"><pre class="term-body" style="font-size:15px; padding:0"><span style="display:block; background:#E6EDF3; color:#0D1117; padding:3px 14px">  GNU nano        mi-script.sh</span><span style="display:block; padding:8px 18px; line-height:1.5">#!/bin/bash
+# Mi primer script
+
+NOMBRE="Curies"
+echo "Hola $NOMBRE"
+pwd</span></pre></div>
+      <div class="vars" style="gap:8px">
+        <div class="var"><span><span class="kbd">Ctrl</span> + <span class="kbd">O</span> y <span class="kbd">Enter</span></span><span class="d"><b>Guarda</b></span></div>
+        <div class="var"><span><span class="kbd">Ctrl</span> + <span class="kbd">X</span></span><span class="d"><b>Sale</b> a la terminal</span></div>
+      </div>
+    </div>
+    <div class="terminal frag" data-f="1"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">de vuelta en la terminal</span></div><pre class="term-body" style="font-size:15px"><span class="pr">$</span> ls
+<span class="out">mi-script.sh</span></pre></div>
+    <div class="fill mapbox"><svg class="diagram" viewBox="0 0 420 204" preserveAspectRatio="xMidYMin meet"><rect class="n-root" x="115.0" y="10" width="190" height="38" rx="10"/><text x="210.0" y="30" text-anchor="middle" dominant-baseline="middle" class="t-big t-green">curies-linux/</text><path class="edge" d="M147.0 70 H285.0"/><path class="edge" d="M210.0 48 V70"/><path class="edge" d="M147.0 70 V95"/><rect class="n-file" x="77.0" y="95" width="140" height="34" rx="8"/><text x="147.0" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid tf" style="font-size:13px">… (lo de antes)</text><g class="frag" data-f="2"><path class="edge" d="M285.0 70 V95"/><rect class="n-new" x="227.0" y="95" width="116" height="34" rx="8"/><text x="285.0" y="113" text-anchor="middle" dominant-baseline="middle" class="t-mid tn" style="font-size:13px">mis-scripts/</text><path class="edge" d="M233.0 129 V165 H239.0"/><rect class="n-new" x="239.0" y="150" width="116" height="30" rx="7"/><text x="297.0" y="166" text-anchor="middle" dominant-baseline="middle" class="t-mid tn" style="font-size:13px">mi-script.sh</text></g></svg></div>
+  </section>
+
+  <section class="slide" data-title="Ejecutar el script" style="justify-content:center">
+    <p class="kicker">2 · tu primer script · paso 5</p>
+    <h2>Ejecútalo: <code class="c" style="font-size:.85em">chmod +x</code> y <code class="c" style="font-size:.85em">./</code></h2>
+    <div class="grid-2">
+      <div class="terminal"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">mi-script.sh (lo que escribiste)</span></div><pre class="term-body" style="font-size:16px">#!/bin/bash
+# Mi primer script
+
+NOMBRE="Curies"
+echo "Hola $NOMBRE"
+pwd</pre></div>
+      <div class="terminal"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">~/curies-linux/mis-scripts</span></div><pre class="term-body" style="font-size:16px"><span class="pr">$</span> chmod +x mi-script.sh
+<span class="pr">$</span> ./mi-script.sh
+<span class="out">Hola Curies
+/home/usuario/curies-linux/mis-scripts</span></pre></div>
+    </div>
+    <div class="path-split">
+      <div class="seg s1"><span class="t" style="font-size:34px">.</span><span class="l">esta carpeta<br>(donde estás)</span></div>
+      <div class="seg s2"><span class="t" style="font-size:34px">/</span><span class="l">dentro de ella</span></div>
+      <div class="seg s3"><span class="t" style="font-size:34px">mi-script.sh</span><span class="l">el archivo a ejecutar</span></div>
+    </div>
+    <div class="vars c2">
+      <div class="var warn"><span class="k">Olvidaste chmod +x ✗</span><pre><span class="pr">$</span> ./mi-script.sh
+<span class="err">permission denied: ./mi-script.sh</span></pre></div>
+      <div class="var warn"><span class="k">Olvidaste el ./ ✗</span><pre><span class="pr">$</span> mi-script.sh
+<span class="err">command not found: mi-script.sh</span></pre></div>
+    </div>
+  </section>
+
+  <section class="slide" data-title="Argumentos $1" style="justify-content:center">
+    <p class="kicker">2 · bash scripting</p>
+    <h2>Argumentos: palabras que le pasas al script</h2>
+    <div class="card prompt-k" style="padding:18px">
+      <div class="prompt-anatomy">
+        <div class="tok d"><span class="t">./saludo.sh</span><span class="l">el script</span></div>
+        <div class="tok u"><span class="t">Ana</span><span class="l">1.ª palabra<br>= <b>$1</b></span></div>
+        <div class="tok h"><span class="t">Luis</span><span class="l">2.ª palabra<br>= <b>$2</b></span></div>
+      </div>
+    </div>
+    <div class="argflow">
+      <div class="terminal"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">saludo.sh</span></div><pre class="term-body" style="font-size:17px">#!/bin/bash
+echo "Hola <span class="hl-green" style="font-weight:700">$1</span> y <span class="hl-blue" style="font-weight:700">$2</span>"</pre></div>
+      <div class="afa">⟶<small>$1 se cambia por Ana<br>$2 se cambia por Luis</small></div>
+      <div class="terminal"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">resultado</span></div><pre class="term-body" style="font-size:17px"><span class="pr">$</span> ./saludo.sh Ana Luis
+<span class="out">Hola <span class="hl-green">Ana</span> y <span class="hl-blue">Luis</span></span>
+<span class="pr">$</span> ./saludo.sh Eli Aranza
+<span class="out">Hola <span class="hl-green">Eli</span> y <span class="hl-blue">Aranza</span></span></pre></div>
+    </div>
+    <p class="muted" style="text-align:center; font-size:17px">El mismo script sirve para cualquier nombre. <code class="c">$@</code> = todas las palabras juntas (la usamos en <code class="c">subir_repo</code>).</p>
+  </section>
+  <!-- ============================================================
+       DIAPOSITIVA 18 · FUNCIONES
+       ============================================================ -->
+  <section class="slide" data-title="Funciones" style="justify-content:center">
+    <p class="kicker">3 · tu propio comando</p>
+    <h2>Funciones: un comando con nombre, hecho por ti</h2>
+    <div class="grid-2">
+      <div class="terminal">
+        <div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">escríbela directo en la terminal</span></div>
+        <pre class="term-body" style="font-size:18px"><span class="hl-blue">saludar</span>() {
+  echo "Hola $1"
+}</pre>
+      </div>
+      <div class="terminal">
+        <div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">úsala como cualquier comando</span></div>
+        <pre class="term-body" style="font-size:18px"><span class="pr">$</span> saludar Ana
+<span class="out">Hola Ana</span>
+<span class="pr">$</span> saludar Curies
+<span class="out">Hola Curies</span></pre>
+      </div>
+    </div>
+    <div class="card yellow"><p><b>¿Dónde se escribe?</b> Directo en la terminal, no en un script ni en nano. Escribe la primera línea, Enter, la del medio, Enter, y la llave <code class="c">}</code>, Enter. Ya queda lista para usarse.</p></div><div class="vars c3">
+      <div class="var"><span class="k">nombre()</span><span class="d">El nombre de tu comando, con paréntesis vacíos.</span></div>
+      <div class="var"><span class="k">{ ... }</span><span class="d">Adentro, los comandos que va a ejecutar.</span></div>
+      <div class="var warn"><span class="k">Ojo</span><span class="d">Si cierras la terminal, la función se pierde. Siguiente: guardarla.</span></div>
+    </div>
+  </section>
+  <!-- ============================================================
+       DIAPOSITIVA 19 · TU COMANDO subir_repo
+       ============================================================ -->
+  <section class="slide" data-title="subir_repo" style="justify-content:center">
+    <p class="kicker">3 · tu propio comando</p>
+    <h2>Tu comando <code class="c" style="font-size:.85em">subir_repo</code>: add + commit + push en uno</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px">
+      <div class="terminal">
+        <div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">al final de ~/.zshrc (Kali) o ~/.bashrc (Ubuntu)</span></div>
+        <pre class="term-body" style="font-size:16px"><span class="hl-blue">subir_repo</span>() {
+  git add "$@"
+  git commit -m "Actualización: $*"
+  git push
+}</pre>
+      </div>
+      <ol class="steps" style="gap:10px">
+        <li><span><code class="c">nano ~/.zshrc</code> (Kali) o <code class="c">nano ~/.bashrc</code> (Ubuntu)</span></li>
+        <li><span>Baja hasta el final, pega la función, guarda y sal</span></li>
+        <li><span>Carga los cambios: <code class="c">source ~/.zshrc</code></span></li>
+        <li><span>Entra a <b>tu repo</b> y úsalo: <code class="c">subir_repo README.md</code></span></li>
+      </ol>
+    </div>
+    <div class="terminal">
+      <pre class="term-body" style="font-size:15px"><span class="pr">~/mi-repo$</span> subir_repo README.md
+<span class="out">[main 1c0d7fe] Actualización: README.md
+ 1 file changed, 1 insertion(+)
+To https://github.com/tu-usuario/mi-repo.git</span></pre>
+    </div>
+    <p class="small muted" style="text-align:center"><code class="c">$@</code> = los archivos que escribes · <code class="c">$*</code> = esos mismos nombres, en el mensaje del commit · <code class="c">source</code> = vuelve a leer tu configuración</p>
+  </section>
+  <!-- ============================================================
+       DIAPOSITIVA 20 · SSH
+       ============================================================ -->
+  <section class="slide" data-title="SSH" style="justify-content:center">
+    <p class="kicker">3 · conexión remota</p>
+    <div class="cmd-head"><span class="big">ssh</span><span class="what">Usar la terminal de otra computadora</span><span class="full">secure shell</span></div>
+    <div class="fill" style="max-height:200px">
+      <svg class="diagram" viewBox="0 0 1150 200" preserveAspectRatio="xMidYMid meet" aria-label="Conexión SSH">
+        <rect class="node on" x="40" y="30" width="300" height="140" rx="14"/>
+        <text x="190" y="80" text-anchor="middle" class="t-big t-green">💻 Tu computadora</text>
+        <text x="190" y="115" text-anchor="middle" class="t-mid">ssh ana@192.168.1.10</text>
+        <path class="go" d="M350 100 H790" marker-end="url(#flecha-verde)" style="stroke-width:4"/>
+        <text x="570" y="82" text-anchor="middle" class="t-mid t-green">conexión cifrada 🔒</text>
+        <rect class="node" x="810" y="30" width="300" height="140" rx="14" style="stroke:#367BF0; stroke-width:2.5"/>
+        <text x="960" y="80" text-anchor="middle" class="t-big t-blue">🖥️ Servidor</text>
+        <text x="960" y="115" text-anchor="middle" class="t-mid">ejecuta tus comandos</text>
+      </svg>
+    </div>
+    <div class="grid-2">
+      <div class="terminal">
+        <pre class="term-body" style="font-size:15px"><span class="pr">usuario@maquina:~$</span> ssh ana@192.168.1.10
+<span class="out">Are you sure you want to continue connecting (yes/no)?</span> yes
+<span class="out">ana@192.168.1.10's password:</span>
+<span class="hl-blue">ana@servidor:~$</span> pwd
+<span class="out">/home/ana</span>
+<span class="hl-blue">ana@servidor:~$</span> exit</pre>
+      </div>
+      <div class="vars" style="gap:10px">
+        <div class="var"><span class="k">ssh usuario@ip</span><span class="d">Usuario de la otra máquina y su dirección.</span></div>
+        <div class="var"><span class="k">Mira el prompt</span><span class="d">Cambia: ahora estás <b>dentro</b> del servidor.</span></div>
+        <div class="var"><span class="k">exit</span><span class="d">Cierra la conexión y regresas a tu máquina.</span></div>
+      </div>
+    </div>
+  </section>
+  <!-- ============================================================
+       DIAPOSITIVA 21 · RETO DEL MIÉRCOLES
+       ============================================================ -->
+  <section class="slide" data-title="Reto del miércoles" style="justify-content:center">
+    <p class="kicker">reto · módulo 3</p>
+    <h2>El reto del miércoles</h2>
+    <p class="lead">Crea un script <code class="c">estructura.sh</code> que arme un proyecto, y súbelo a <b>tu repositorio público</b> con tu comando <code class="c">subir_repo</code>.</p>
+    <div class="card">
+      <ol class="steps" style="gap:12px">
+        <li><span>Empieza con <code class="c">#!/bin/bash</code> y tiene al menos un comentario</span></li>
+        <li><span>Usa una variable (o <code class="c">$1</code>) para el nombre del proyecto</span></li>
+        <li><span>Crea al menos 3 carpetas con <code class="c">mkdir -p</code> y un archivo con <code class="c">touch</code></span></li>
+        <li><span>Crea un <code class="c">README.md</code> con título y tu nombre usando <code class="c">echo &gt;</code> y <code class="c">&gt;&gt;</code></span></li>
+        <li><span>Lo subes con <code class="c">subir_repo</code> y compartes el link de tu repo</span></li>
+      </ol>
+    </div>
+    <p class="small muted" style="text-align:center">Requisito: tu cuenta de GitHub y un repositorio público tuyo. Se evaluará con ese link.</p>
+  </section>
+  <!-- ============================================================
+       DIAPOSITIVA 22 · RESUMEN
+       ============================================================ -->
+  <section class="slide" data-title="Resumen" style="justify-content:center">
+    <p class="kicker">resumen</p>
+    <h2>Lo que aprendimos hoy</h2>
+    <div class="card" style="padding:10px 16px">
+      <table class="wt">
+        <thead><tr><th>Comando</th><th>Qué hace</th></tr></thead>
+        <tbody>
+          <tr><td>mkdir · mkdir -p</td><td>Crea carpetas · con toda su ruta</td></tr>
+          <tr><td>touch</td><td>Crea un archivo vacío</td></tr>
+          <tr><td>echo &gt; · &gt;&gt;</td><td>Reemplaza el contenido · agrega al final</td></tr>
+          <tr><td>chmod +x · -w · u+x</td><td>Da o quita permisos</td></tr>
+          <tr><td>nano</td><td>Edita un archivo en la terminal</td></tr>
+          <tr><td>./script.sh · $1</td><td>Ejecuta un script · con argumentos</td></tr>
+          <tr><td>nombre() { }</td><td>Crea tu propio comando (función)</td></tr>
+          <tr><td>source ~/.zshrc</td><td>Carga tu configuración</td></tr>
+          <tr><td>ssh usuario@ip</td><td>Entra a la terminal de otra computadora</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="thanks">¡Gracias! <span>🐧</span></p>
+  </section>
+</main>
+</div>
+
+<!-- ===== Barra de controles ===== -->
+<nav class="controls" aria-label="Controles de la presentación">
+  <span class="title" id="slideTitle"></span>
+  <div class="nav">
+    <button id="btnPrev" aria-label="Diapositiva anterior">← Anterior</button>
+    <span class="counter" id="counter"></span>
+    <button id="btnNext" aria-label="Diapositiva siguiente">Siguiente →</button>
+    <button id="btnFull" title="Pantalla completa (F)">⛶</button>
+  </div>
+  <span class="hint">← → navegar · F pantalla completa</span>
+</nav>
+
+<script>
+/* =====================================================================
+   LÓGICA DE NAVEGACIÓN (no necesitas tocar esto para editar contenido)
+   ===================================================================== */
+(function(){
+  const stage   = document.getElementById('stage');
+  const slides  = Array.from(document.querySelectorAll('.slide'));
+  const counter = document.getElementById('counter');
+  const title   = document.getElementById('slideTitle');
+  const bar     = document.getElementById('progress');
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
+  const btnFull = document.getElementById('btnFull');
+  let current = 0;
+
+  /* Escala el escenario 1280×720 para que quepa en la ventana */
+  function fit(){
+    const availW = window.innerWidth  - 24;
+    const availH = window.innerHeight - 56 - 24; // 56 = barra de controles
+    const s = Math.min(availW / 1280, availH / 720);
+    stage.style.transform = `translate(-50%, -50%) scale(${s})`;
+  }
+
+  /* Muestra la diapositiva n */
+  function go(n){
+    current = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => {
+      s.classList.toggle('active', i === current);
+      s.classList.toggle('prev',   i <  current);
+    });
+    counter.innerHTML = `<b>${current + 1}</b> / ${slides.length}`;
+    title.textContent = slides[current].dataset.title || '';
+    bar.style.width   = ((current + 1) / slides.length * 100) + '%';
+    btnPrev.disabled  = current === 0;
+    btnNext.disabled  = current === slides.length - 1;
+    history.replaceState(null, '', '#' + (current + 1)); // permite compartir #5, #12…
+  }
+
+
+  /* Pasos dentro de una diapositiva (.frag): → muestra el siguiente paso antes de avanzar */
+  function frags(i){ return Array.from(slides[i].querySelectorAll('.frag')).sort((a,b)=>a.dataset.f-b.dataset.f); }
+  function setFrags(i, all){ frags(i).forEach(f=>f.classList.toggle('shown', all)); }
+  function next(){ const h=frags(current).find(f=>!f.classList.contains('shown')); if(h){ const s=h.dataset.f; frags(current).filter(f=>f.dataset.f===s).forEach(f=>f.classList.add('shown')); return; } if(current<slides.length-1){ setFrags(current+1,false); go(current+1); } }
+  function prev(){ const sh=frags(current).filter(f=>f.classList.contains('shown')); if(sh.length){ const s=sh[sh.length-1].dataset.f; sh.filter(f=>f.dataset.f===s).forEach(f=>f.classList.remove('shown')); return; } if(current>0){ setFrags(current-1,true); go(current-1); } }
+
+  function toggleFull(){
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  }
+
+  /* Teclado */
+  document.addEventListener('keydown', e => {
+    if (['ArrowRight','PageDown',' '].includes(e.key)) { e.preventDefault(); next(); }
+    if (['ArrowLeft','PageUp'].includes(e.key))        { e.preventDefault(); prev(); }
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End')  go(slides.length - 1);
+    if (e.key === 'f' || e.key === 'F') toggleFull();
+  });
+
+  /* Botones */
+  btnPrev.addEventListener('click', prev);
+  btnNext.addEventListener('click', next);
+  btnFull.addEventListener('click', toggleFull);
+
+  /* Deslizar en pantallas táctiles */
+  let x0 = null;
+  document.addEventListener('touchstart', e => x0 = e.touches[0].clientX, {passive:true});
+  document.addEventListener('touchend', e => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 50) (dx < 0 ? next() : prev());
+    x0 = null;
+  });
+
+  window.addEventListener('resize', fit);
+  fit();
+  const fromHash = parseInt(location.hash.replace('#',''), 10);
+  go(isNaN(fromHash) ? 0 : fromHash - 1);
+})();
+</script>
+</body>
+</html>
