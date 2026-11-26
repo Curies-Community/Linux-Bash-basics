@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Módulo 3 · Laboratorio · v4</title>
+
+<!-- Tipografías: Inter (lectura) y JetBrains Mono (código).
+     Si no hay internet, se usan las fuentes de respaldo del sistema. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* =====================================================================
+   GUÍA RÁPIDA DE EDICIÓN
+   ---------------------------------------------------------------------
+   1) COLORES Y FUENTES  → cambia las variables de :root (abajo).
+   2) TEXTOS             → busca en el <body> el comentario
+                           "DIAPOSITIVA N" y edita lo que está dentro.
+   3) NUEVA DIAPOSITIVA  → copia un bloque <section class="slide"> ...
+                           </section> completo y pégalo donde quieras.
+                           El contador y la barra de progreso se
+                           actualizan solos.
+   4) NAVEGACIÓN         → flechas ← →, barra espaciadora, Inicio/Fin,
+                           tecla F = pantalla completa.
+   ===================================================================== */
+
+/* ---------- 1. PALETA Y TIPOGRAFÍA (edita aquí) ---------- */
+:root{
+  /* Fondos */
+  --bg:        #0D1117;   /* fondo principal tipo consola */
+  --bg-2:      #161B22;   /* paneles y barra inferior */
+  --surface:   #1E1E2E;   /* tarjetas y ventanas de terminal */
+  --surface-2: #262637;   /* tarjetas resaltadas / hover */
+  --border:    #30363D;   /* bordes sutiles */
+
+  /* Texto */
+  --text:       #E6EDF3;  /* texto principal (alto contraste) */
+  --text-muted: #8B949E;  /* texto secundario */
+  --text-dim:   #6E7681;  /* notas pequeñas */
+
+  /* Acentos */
+  --green:       #00FF66; /* verde terminal: prompt, éxito, “nuestra ruta” */
+  --green-soft:  #7CFFB2;
+  --blue:        #367BF0; /* azul Kali */
+  --blue-soft:   #8AB4FF;
+  --orange:      #E95420; /* naranja Ubuntu */
+  --orange-soft: #FF9A6B;
+  --yellow:      #F2CC60; /* advertencias y tips */
+  --red:         #FF5F56; /* peligro / errores */
+
+  /* Fuentes */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, Consolas, monospace;
+
+  --radius: 14px;
+}
+
+/* ---------- 2. BASE ---------- */
+*{ box-sizing:border-box; margin:0; padding:0; }
+html,body{ height:100%; background:var(--bg); color:var(--text); font-family:var(--font-sans); overflow:hidden; }
+code, pre, .mono{ font-family:var(--font-mono); }
+
+/* ---------- 3. ESCENARIO 16:9 ----------
+   Todas las diapositivas miden 1280×720 y se escalan con JavaScript
+   para caber en cualquier pantalla (laptop, proyector o Google Meet). */
+.viewport{ position:fixed; inset:0 0 56px 0; }
+.stage{
+  position:absolute; top:50%; left:50%;
+  width:1280px; height:720px;
+  transform-origin:center center;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(54,123,240,.10), transparent 40%),
+    radial-gradient(circle at 10% 90%, rgba(0,255,102,.06), transparent 40%),
+    var(--bg);
+  border:1px solid var(--border);
+  border-radius:18px;
+  overflow:hidden;
+}
+/* Cuadrícula sutil de fondo, estilo “pantalla” */
+.stage::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+                   linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size:40px 40px;
+}
+
+/* Marca en la esquina inferior izquierda de cada diapositiva */
+.brand{
+  position:absolute; left:64px; bottom:22px; z-index:5;
+  font:500 13px var(--font-mono); color:var(--text-dim); letter-spacing:.04em;
+}
+.brand b{ color:var(--green); font-weight:600; }
+
+/* ---------- 4. DIAPOSITIVAS ---------- */
+.slide{
+  position:absolute; inset:0;
+  padding:52px 64px 60px;
+  display:flex; flex-direction:column; gap:22px;
+  opacity:0; visibility:hidden; transform:translateX(24px);
+  transition:opacity .35s ease, transform .35s ease, visibility .35s;
+}
+.slide.active{ opacity:1; visibility:visible; transform:none; }
+.slide.prev  { transform:translateX(-24px); }
+
+/* Títulos */
+.kicker{ font:600 15px var(--font-mono); color:var(--green); letter-spacing:.08em; text-transform:uppercase; }
+.kicker::before{ content:"$ "; color:var(--text-dim); }
+h1{ font-size:64px; line-height:1.05; font-weight:800; letter-spacing:-.02em; }
+h2{ font-size:40px; line-height:1.15; font-weight:700; letter-spacing:-.01em; }
+h3{ font-size:22px; font-weight:700; margin-bottom:8px; }
+p, li{ font-size:20px; line-height:1.5; color:var(--text); }
+.lead{ font-size:22px; color:var(--text-muted); max-width:1000px; }
+.muted{ color:var(--text-muted); }
+.small{ font-size:16px; }
+.hl-green{ color:var(--green); } .hl-blue{ color:var(--blue-soft); }
+.hl-orange{ color:var(--orange-soft); } .hl-yellow{ color:var(--yellow); } .hl-red{ color:var(--red); }
+
+/* Código en línea */
+code.c{ background:var(--surface); border:1px solid var(--border); padding:2px 8px; border-radius:6px; font-size:.92em; color:var(--green-soft); }
+
+/* Rejillas */
+.grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+.grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.grid-4{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+.fill{ flex:1; min-height:0; }
+.center{ align-items:center; justify-content:center; text-align:center; }
+
+/* Tarjetas */
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:22px 24px;
+}
+.card p, .card li{ font-size:18px; }
+.card .icon{ font-size:30px; margin-bottom:8px; display:block; }
+.card.green { border-top:4px solid var(--green); }
+.card.blue  { border-top:4px solid var(--blue); }
+.card.orange{ border-top:4px solid var(--orange); }
+.card.yellow{ border-top:4px solid var(--yellow); }
+.card.red   { border-top:4px solid var(--red); }
+
+/* Caja de analogía (💡) */
+.analogy{
+  display:flex; gap:16px; align-items:flex-start;
+  background:linear-gradient(90deg, rgba(242,204,96,.12), rgba(242,204,96,.03));
+  border:1px solid rgba(242,204,96,.35); border-left:5px solid var(--yellow);
+  border-radius:12px; padding:16px 20px;
+}
+.analogy::before{ content:"💡"; font-size:26px; line-height:1; }
+.analogy p{ font-size:19px; }
+.analogy b{ color:var(--yellow); }
+
+/* Caja de peligro (⚠️) */
+.danger{
+  display:flex; gap:16px; align-items:flex-start;
+  background:rgba(255,95,86,.08); border:1px solid rgba(255,95,86,.4);
+  border-left:5px solid var(--red); border-radius:12px; padding:16px 20px;
+}
+.danger::before{ content:"⚠️"; font-size:24px; line-height:1.1; }
+.danger p{ font-size:18px; }
+
+/* Etiquetas pequeñas */
+.tag{ display:inline-block; font:600 13px var(--font-mono); padding:4px 10px; border-radius:999px; border:1px solid var(--border); color:var(--text-muted); }
+.tag.green { color:var(--green);  border-color:rgba(0,255,102,.4); }
+.tag.blue  { color:var(--blue-soft); border-color:rgba(54,123,240,.5); }
+.tag.orange{ color:var(--orange-soft); border-color:rgba(233,84,32,.5); }
+
+/* ---------- 5. VENTANA DE TERMINAL ---------- */
+.terminal{
+  background:#0A0E14; border:1px solid var(--border); border-radius:12px; overflow:hidden;
+  box-shadow:0 12px 40px rgba(0,0,0,.45);
+}
+.term-bar{ display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--bg-2); border-bottom:1px solid var(--border); }
+.dot{ width:12px; height:12px; border-radius:50%; }
+.dot.r{ background:#FF5F56; } .dot.y{ background:#FFBD2E; } .dot.g{ background:#27C93F; }
+.term-title{ margin-left:10px; font:500 13px var(--font-mono); color:var(--text-dim); }
+.term-body{ padding:16px 20px; font:400 17px/1.6 var(--font-mono); color:var(--text); white-space:pre; overflow:hidden; }
+.term-body .pr { color:var(--green); font-weight:600; }  /* prompt */
+.term-body .out{ color:var(--text-muted); }               /* salida */
+.term-body .cm { color:var(--text-dim); font-style:italic; } /* comentario */
+.term-body .dir{ color:var(--blue-soft); font-weight:600; }  /* carpetas */
+.term-body .exe{ color:var(--green-soft); font-weight:600; } /* ejecutables */
+.term-body .err{ color:var(--red); }
+
+/* ---------- 6. TARJETAS DE COMANDO ---------- */
+.cmd{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; display:flex; flex-direction:column; gap:10px; }
+.cmd .name{ font:700 30px var(--font-mono); color:var(--green); }
+.cmd .what{ font-size:18px; font-weight:600; }
+.cmd .like{ font-size:16px; color:var(--yellow); }
+.cmd .ex{ font:500 15px var(--font-mono); background:#0A0E14; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); white-space:pre; }
+
+/* ---------- 7. PORTADA Y SEPARADORES ---------- */
+.cover{ justify-content:center; gap:26px; }
+.cover h1 span{ color:var(--green); }
+.cover .meta{ display:flex; gap:28px; flex-wrap:wrap; font:500 17px var(--font-mono); color:var(--text-muted); }
+.cover .meta b{ color:var(--text); }
+
+.divider{ justify-content:center; gap:18px; }
+.divider .num{ font:700 160px/1 var(--font-mono); color:transparent; -webkit-text-stroke:2px var(--green); opacity:.9; }
+.divider h2{ font-size:56px; }
+.divider ul{ list-style:none; display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; }
+
+/* ---------- 8. DIAGRAMA: KERNEL vs GNU/LINUX ---------- */
+.stack{
+  display:grid;
+  grid-template-columns:54px 54px 1fr 64px 1fr;
+  grid-template-rows:repeat(5, 1fr);
+  column-gap:10px; row-gap:10px; height:100%;
+}
+.layer{ border-radius:12px; padding:10px 18px; display:flex; flex-direction:column; justify-content:center; border:1px solid var(--border); background:var(--surface); }
+.layer b{ font-size:19px; }
+.layer span{ font:400 14px var(--font-mono); color:var(--text-muted); }
+.layer.kernel{ background:linear-gradient(90deg, rgba(0,255,102,.18), rgba(0,255,102,.05)); border-color:var(--green); }
+.layer.gnu   { background:linear-gradient(90deg, rgba(54,123,240,.22), rgba(54,123,240,.06)); border-color:var(--blue); }
+.layer.apps  { background:linear-gradient(90deg, rgba(233,84,32,.20), rgba(233,84,32,.05)); border-color:var(--orange); }
+.layer.hw    { background:var(--bg-2); border-style:dashed; }
+.layer.you   { background:transparent; border-style:dashed; }
+.arrow-r{ display:flex; align-items:center; justify-content:center; font:700 26px var(--font-mono); color:var(--text-dim); }
+.car{ border-radius:12px; padding:10px 18px; display:flex; align-items:center; gap:14px; background:rgba(242,204,96,.07); border:1px solid rgba(242,204,96,.3); }
+.car .e{ font-size:28px; }
+.car b{ font-size:18px; color:var(--yellow); }
+.car span{ font-size:14px; color:var(--text-muted); display:block; }
+.bracket{
+  border:2px solid; border-right:none; border-radius:10px 0 0 10px;
+  display:flex; align-items:center; justify-content:center;
+  writing-mode:vertical-rl; transform:rotate(180deg);
+  font:700 14px var(--font-mono); letter-spacing:.05em;
+}
+/* Al rotar 180°, el borde visible queda a la derecha: lo corregimos */
+.bracket{ border-right:2px solid; border-left:none; border-radius:0 10px 10px 0; }
+.bracket.distro{ color:var(--orange-soft); border-color:var(--orange); grid-column:1; grid-row:2 / 5; }
+.bracket.gnul  { color:var(--blue-soft);   border-color:var(--blue);   grid-column:2; grid-row:3 / 5; }
+
+/* ---------- 9. DIAGRAMAS SVG (árboles) ---------- */
+svg.diagram{ width:100%; height:100%; display:block; }
+svg.diagram text{ font-family:var(--font-mono); fill:var(--text); }
+svg .node      { fill:var(--surface); stroke:var(--border); stroke-width:1.5; }
+svg .node.root { fill:var(--surface-2); stroke:var(--text-muted); }
+svg .node.on   { fill:rgba(0,255,102,.12); stroke:var(--green); stroke-width:2.5; }
+svg .node.ubu  { fill:rgba(233,84,32,.18); stroke:var(--orange); stroke-width:3; }
+svg .node.kali { fill:rgba(54,123,240,.20); stroke:var(--blue); stroke-width:3; }
+svg .node.off  { opacity:.55; }
+svg .edge      { fill:none; stroke:var(--border); stroke-width:2; }
+svg .edge.on   { stroke:var(--green); stroke-width:3; }
+svg .edge.rel  { stroke:var(--orange); stroke-width:2.5; stroke-dasharray:7 6; }
+svg .t-big   { font-size:18px; font-weight:700; }
+svg .t-mid   { font-size:15px; font-weight:600; }
+svg .t-small { font-size:12px; fill:var(--text-muted) !important; }
+svg .t-green { fill:var(--green) !important; }
+svg .t-orange{ fill:var(--orange-soft) !important; }
+svg .t-blue  { fill:var(--blue-soft) !important; }
+
+/* Panel lateral de rutas */
+.path-box{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 18px; }
+.path-box .lbl{ font:600 13px var(--font-mono); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+.path-box .val{ font:600 19px var(--font-mono); word-break:break-all; }
+
+/* ---------- 10. DIAGRAMA: ANATOMÍA DEL PROMPT ---------- */
+.prompt-anatomy{ display:flex; justify-content:center; gap:4px; flex-wrap:wrap; }
+.tok{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+.tok .t{ font:700 44px var(--font-mono); padding:6px 10px; border-radius:10px; border:2px solid transparent; }
+.tok .l{ font:600 14px var(--font-sans); color:var(--text-muted); text-align:center; max-width:150px; line-height:1.3; }
+.tok .l::before{ content:"▲"; display:block; font-size:10px; margin-bottom:2px; }
+.tok.u .t{ color:var(--green);      border-color:rgba(0,255,102,.5); }
+.tok.a .t{ color:var(--text-muted); }
+.tok.h .t{ color:var(--blue-soft);  border-color:rgba(54,123,240,.6); }
+.tok.d .t{ color:var(--yellow);     border-color:rgba(242,204,96,.6); }
+.tok.s .t{ color:var(--orange-soft);border-color:rgba(233,84,32,.6); }
+
+/* ---------- 11. FLUJO (chips con flechas) ---------- */
+.flow{ display:flex; align-items:stretch; justify-content:center; gap:10px; }
+.flow .step{ flex:1; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; text-align:center; }
+.flow .step .e{ font-size:30px; display:block; }
+.flow .step b{ display:block; font-size:17px; margin-top:4px; }
+.flow .step span{ font-size:14px; color:var(--text-muted); }
+.flow .step.hl{ border-color:var(--green); background:rgba(0,255,102,.07); }
+.flow .to{ align-self:center; font:700 24px var(--font-mono); color:var(--green); }
+
+/* ---------- 12. TABLA ESTILO TERMINAL (ls -l) ---------- */
+table.ls{ width:100%; border-collapse:collapse; font:400 16px var(--font-mono); }
+table.ls th{ font:600 12px var(--font-sans); text-transform:uppercase; letter-spacing:.05em; padding:6px 8px; text-align:left; border-bottom:2px solid; }
+table.ls td{ padding:6px 8px; color:var(--text); border-bottom:1px solid rgba(48,54,61,.5); }
+table.ls .c1{ color:var(--yellow);      border-color:var(--yellow); }
+table.ls .c2{ color:var(--text-dim);    border-color:var(--text-dim); }
+table.ls .c3{ color:var(--green-soft);  border-color:var(--green); }
+table.ls .c4{ color:var(--blue-soft);   border-color:var(--blue); }
+table.ls .c5{ color:var(--orange-soft); border-color:var(--orange); }
+table.ls .c6{ color:var(--text-muted);  border-color:var(--text-muted); }
+table.ls .c7{ color:var(--text);        border-color:var(--text); }
+table.ls tr.hidden-file td.c7{ color:var(--yellow); }
+table.ls .isdir{ color:var(--blue-soft); font-weight:700; }
+
+/* ---------- 13. DIAGRAMA: PERMISOS ---------- */
+.perm{ display:flex; justify-content:center; gap:14px; }
+.perm .blk{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+.perm .chars{ font:700 52px var(--font-mono); padding:8px 18px; border-radius:12px; border:2px solid; letter-spacing:.12em; }
+.perm .who{ font-weight:700; font-size:17px; }
+.perm .ex{ font-size:14px; color:var(--text-muted); text-align:center; max-width:220px; }
+.perm .k0 .chars{ color:var(--text-muted); border-color:var(--border); }
+.perm .k1 .chars{ color:var(--green);      border-color:var(--green); background:rgba(0,255,102,.07); }
+.perm .k2 .chars{ color:var(--blue-soft);  border-color:var(--blue);  background:rgba(54,123,240,.08); }
+.perm .k3 .chars{ color:var(--orange-soft);border-color:var(--orange);background:rgba(233,84,32,.08); }
+.rwx{ display:flex; gap:16px; justify-content:center; }
+.rwx div{ background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 16px; font-size:17px; }
+.rwx b{ font-family:var(--font-mono); color:var(--green); font-size:22px; margin-right:6px; }
+
+/* ---------- 14. AGENDA / LÍNEA DE TIEMPO ---------- */
+.agenda{ display:flex; flex-direction:column; gap:12px; }
+.agenda .row{ display:grid; grid-template-columns:110px 70px 1fr; align-items:center; gap:16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 20px; }
+.agenda .time{ font:600 16px var(--font-mono); color:var(--text-muted); }
+.agenda .id  { font:700 20px var(--font-mono); color:var(--green); }
+.agenda .row b{ font-size:20px; }
+.agenda .row span{ font-size:15px; color:var(--text-muted); display:block; }
+.week{ display:flex; gap:12px; }
+.week .day{ flex:1; border:1px solid var(--border); border-radius:12px; padding:12px 16px; background:var(--bg-2); }
+.week .day.today{ border-color:var(--green); background:rgba(0,255,102,.06); }
+.week .day small{ font:600 13px var(--font-mono); color:var(--text-muted); display:block; }
+.week .day b{ font-size:16px; }
+
+/* Lista con casillas */
+.checklist{ list-style:none; display:flex; flex-direction:column; gap:14px; }
+.checklist li{ display:flex; gap:14px; align-items:flex-start; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 18px; font-size:19px; }
+.checklist li::before{ content:"[✓]"; font:700 18px var(--font-mono); color:var(--green); }
+
+/* Pasos numerados (retos) */
+.steps{ list-style:none; counter-reset:paso; display:flex; flex-direction:column; gap:8px; }
+.steps li{ counter-increment:paso; display:flex; gap:12px; align-items:baseline; font-size:18px; }
+.steps li::before{ content:counter(paso); min-width:28px; height:28px; border-radius:50%; background:var(--green); color:#0D1117; font:700 15px var(--font-mono); display:inline-flex; align-items:center; justify-content:center; }
+
+/* Tabla de símbolos */
+.sym{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+.sym div{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px; text-align:center; }
+.sym b{ display:block; font:700 30px var(--font-mono); color:var(--green); }
+.sym span{ font-size:15px; color:var(--text-muted); }
+
+/* ---------- 15. CONTROLES (fuera del escenario) ---------- */
+.progress{ position:fixed; top:0; left:0; height:4px; background:linear-gradient(90deg, var(--green), var(--blue)); width:0; transition:width .35s ease; z-index:20; }
+.controls{
+  position:fixed; left:0; right:0; bottom:0; height:56px; z-index:20;
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:0 20px; background:var(--bg-2); border-top:1px solid var(--border);
+  font-family:var(--font-mono);
+}
+.controls .title{ color:var(--text-muted); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.controls .nav{ display:flex; align-items:center; gap:10px; }
+.controls button{
+  background:var(--surface); color:var(--text); border:1px solid var(--border);
+  border-radius:8px; padding:7px 14px; font:600 14px var(--font-mono); cursor:pointer;
+}
+.controls button:hover{ border-color:var(--green); color:var(--green); }
+.controls button:disabled{ opacity:.35; cursor:default; border-color:var(--border); color:var(--text); }
+.counter{ font-size:14px; color:var(--text); min-width:72px; text-align:center; }
+.counter b{ color:var(--green); }
+.hint{ color:var(--text-dim); font-size:12px; }
+@media (max-width:760px){ .hint, .controls .title{ display:none; } }
+
+/* =====================================================================
+   AGREGADOS DE LA VERSIÓN 2
+   ===================================================================== */
+
+/* Colores de las insignias de cada familia (hechas a mano, no logos oficiales) */
+:root{
+  --fam-debian: #00FF66;
+  --fam-redhat: #B392F0;
+  --fam-arch:   #39C5CF;
+}
+
+/* Íconos dibujados a mano (SVG) dentro de tarjetas */
+.ico{ width:46px; height:46px; stroke:currentColor; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; margin-bottom:8px; display:block; }
+.card.green  .ico{ color:var(--green); }
+.card.blue   .ico{ color:var(--blue-soft); }
+.card.red    .ico{ color:var(--red); }
+.card.orange .ico{ color:var(--orange-soft); }
+.card.yellow .ico{ color:var(--yellow); }
+.card .ico.muted{ color:var(--text-muted); }
+
+/* Insignia con iniciales (familias y distros) */
+.badge{ display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:11px; font:700 17px var(--font-mono); color:#0D1117; flex:none; }
+.badge.de{ background:var(--fam-debian); }
+.badge.rh{ background:var(--fam-redhat); }
+.badge.ar{ background:var(--fam-arch); }
+.badge.ub{ background:var(--orange); color:#fff; }
+.badge.ka{ background:var(--blue); color:#fff; }
+.badge.sm{ width:30px; height:30px; font-size:13px; border-radius:8px; }
+
+/* Insignias dentro de diagramas SVG */
+svg .bdg-de{ fill:var(--fam-debian); } svg .bdg-rh{ fill:var(--fam-redhat); } svg .bdg-ar{ fill:var(--fam-arch); }
+svg .bdg-ub{ fill:var(--orange); }     svg .bdg-ka{ fill:var(--blue); }      svg .bdg-pi{ fill:#7CFFB2; }
+svg.diagram text.bt{ fill:#0D1117; font-weight:700; font-size:14px; }
+svg.diagram text.bt.w{ fill:#fff; }
+
+/* Tarjetas de familia (diapositiva de usos) */
+.fam{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; display:flex; flex-direction:column; gap:12px; }
+.fam .head{ display:flex; align-items:center; gap:12px; }
+.fam .head b{ font-size:22px; }
+.fam .head div span{ display:block; font-size:14px; color:var(--text-muted); }
+.fam .use{ font-size:16px; color:var(--yellow); }
+.fam .d{ display:flex; gap:10px; align-items:flex-start; }
+.fam .d b{ font-size:16px; }
+.fam .d div span{ display:block; font-size:14px; color:var(--text-muted); line-height:1.35; }
+.fam.de{ border-top:4px solid var(--fam-debian); }
+.fam.rh{ border-top:4px solid var(--fam-redhat); }
+.fam.ar{ border-top:4px solid var(--fam-arch); }
+
+/* Diagrama de capas (cebolla) */
+svg .ring-you { fill:rgba(242,204,96,.07);  stroke:rgba(242,204,96,.5); stroke-width:2; }
+svg .ring-gnu { fill:rgba(54,123,240,.16);  stroke:var(--blue); stroke-width:2; }
+svg .ring-ker { fill:rgba(0,255,102,.14);   stroke:var(--green); stroke-width:2.5; }
+svg .ring-hw  { fill:#0A0E14;               stroke:var(--text-muted); stroke-width:2; stroke-dasharray:5 4; }
+svg .go   { fill:none; stroke:var(--green);  stroke-width:3; }
+svg .back { fill:none; stroke:var(--orange); stroke-width:3; stroke-dasharray:8 6; }
+svg .mk   { fill:var(--green); }
+svg .mk.o { fill:var(--orange); }
+svg.diagram text.mkt{ fill:#0D1117; font-weight:700; font-size:14px; }
+
+/* Lista numerada del viaje de un comando */
+.journey{ list-style:none; display:flex; flex-direction:column; gap:9px; }
+.journey li{ display:flex; gap:12px; align-items:flex-start; font-size:17px; line-height:1.4; }
+.journey li .n{ flex:none; width:28px; height:28px; border-radius:50%; background:var(--green); color:#0D1117; font:700 14px var(--font-mono); display:flex; align-items:center; justify-content:center; margin-top:1px; }
+.journey li .n.o{ background:var(--orange); }
+
+/* Flujo por niveles (terminal → shell → kernel → hardware) */
+.levels{ display:grid; grid-template-columns:1fr 28px 1fr 28px 1fr 28px 1fr 28px 1fr; align-items:stretch; }
+.levels .lv{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 12px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; }
+.levels .lv .ico{ margin:0; width:40px; height:40px; }
+.levels .lv b{ font-size:17px; }
+.levels .lv code{ font:600 13px var(--font-mono); background:#0A0E14; border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--green-soft); white-space:nowrap; }
+.levels .lv span{ font-size:13.5px; color:var(--text-muted); line-height:1.35; }
+.levels .lv.c1{ border-top:4px solid var(--yellow); }  .levels .lv.c1 .ico{ color:var(--yellow); }
+.levels .lv.c2{ border-top:4px solid var(--text-muted); } .levels .lv.c2 .ico{ color:var(--text); }
+.levels .lv.c3{ border-top:4px solid var(--blue); }    .levels .lv.c3 .ico{ color:var(--blue-soft); }
+.levels .lv.c4{ border-top:4px solid var(--green); }   .levels .lv.c4 .ico{ color:var(--green); }
+.levels .lv.c5{ border-top:4px dashed var(--text-muted); } .levels .lv.c5 .ico{ color:var(--text-muted); }
+.levels .ar{ display:flex; align-items:center; justify-content:center; font:700 22px var(--font-mono); color:var(--green); }
+.return-bar{ margin-top:8px; border:1px dashed var(--orange); border-radius:10px; padding:8px 14px; text-align:center; font-size:15px; color:var(--orange-soft); }
+
+/* Desglose de una ruta */
+.path-split{ display:flex; justify-content:center; align-items:flex-end; gap:4px; }
+.path-split .seg{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+.path-split .seg .t{ font:700 46px var(--font-mono); padding:6px 12px; border-radius:10px; border:2px solid; }
+.path-split .seg .l{ font-size:14px; color:var(--text-muted); text-align:center; max-width:190px; line-height:1.3; }
+.path-split .s1 .t{ color:var(--green); border-color:var(--green); }
+.path-split .s2 .t{ color:var(--blue-soft); border-color:var(--blue); }
+.path-split .s3 .t{ color:var(--yellow); border-color:var(--yellow); }
+
+/* Símbolos con ejemplo */
+.sym2{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+.sym2 div{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px; text-align:center; display:flex; flex-direction:column; gap:6px; }
+.sym2 b{ font:700 30px var(--font-mono); color:var(--green); }
+.sym2 span{ font-size:14.5px; color:var(--text); line-height:1.3; }
+.sym2 code{ font:500 13.5px var(--font-mono); background:#0A0E14; border-radius:6px; padding:4px; color:var(--green-soft); }
+
+/* Leyenda de colores de ls */
+.legend{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+.legend div{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:6px; }
+.legend .sw{ font:700 18px var(--font-mono); }
+.legend span:not(.sw){ font-size:15px; color:var(--text-muted); }
+.ls-blue{ color:#6CA6FF; font-weight:700; } .ls-white{ color:var(--text); }
+.ls-green{ color:#5BE37D; font-weight:700; } .ls-red{ color:#FF6B6B; font-weight:700; }
+
+/* Mini diagramas cp / mv / rm */
+.cmd-visual{ background:#0A0E14; border:1px solid var(--border); border-radius:10px; padding:6px; }
+svg.mini{ width:100%; height:auto; display:block; }
+svg.mini text{ font-family:var(--font-mono); fill:var(--text-muted); font-size:12px; }
+svg.mini .fold{ fill:rgba(54,123,240,.14); stroke:var(--blue); stroke-width:1.5; }
+svg.mini .file{ fill:var(--surface-2); stroke:var(--text); stroke-width:1.5; }
+svg.mini .file.new{ stroke:var(--green); fill:rgba(0,255,102,.12); }
+svg.mini .ghost{ fill:none; stroke:var(--text-dim); stroke-width:1.5; stroke-dasharray:4 3; }
+svg.mini .a-g{ stroke:var(--green); stroke-width:2.5; fill:none; }
+svg.mini .a-r{ stroke:var(--red); stroke-width:2.5; fill:none; }
+svg.mini .x{ stroke:var(--red); stroke-width:3; }
+svg.mini text.cap{ fill:var(--text); font-size:12px; }
+
+/* Casos de destino (antes → después) */
+.cases{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+.case{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; display:flex; flex-direction:column; gap:10px; }
+.case .q{ font-size:17px; font-weight:700; }
+.case .cmdl{ font:600 15px var(--font-mono); background:#0A0E14; border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--green-soft); }
+.case .ba{ display:grid; grid-template-columns:1fr 24px 1fr; align-items:center; gap:6px; }
+.case .box{ background:#0A0E14; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font:500 14px/1.6 var(--font-mono); white-space:pre; }
+.case .box small{ display:block; font:600 11px var(--font-sans); text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim); }
+.case .to{ text-align:center; color:var(--green); font:700 18px var(--font-mono); }
+.case .res{ font-size:15.5px; color:var(--text-muted); line-height:1.4; }
+.case.warn{ border-color:rgba(255,95,86,.55); }
+.case.warn .q{ color:var(--red); }
+.nw{ color:var(--green); font-weight:700; }
+.gone{ color:var(--red); text-decoration:line-through; }
+
+/* Resumen final */
+.summary{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.summary .card h3{ font-size:19px; }
+.summary .card p{ font-size:16px; color:var(--text-muted); }
+.thanks{ text-align:center; font-size:34px; font-weight:800; }
+.thanks span{ color:var(--green); }
+
+.prompt-k .tok .t{ font-size:34px; padding:4px 8px; }
+.prompt-k .tok{ gap:6px; }
+.prompt-k .tok .l{ font-size:13px; }
+
+/* =====================================================================
+   AGREGADOS DE LA VERSIÓN 3
+   ===================================================================== */
+
+/* Nodos del árbol de la carpeta curies-linux */
+svg .n-dir  { fill:rgba(54,123,240,.16); stroke:var(--blue); stroke-width:1.8; }
+svg .n-file { fill:var(--surface); stroke:var(--border); stroke-width:1.5; }
+svg .n-hid  { fill:rgba(242,204,96,.08); stroke:var(--yellow); stroke-width:1.8; stroke-dasharray:6 4; }
+svg .n-exe  { fill:rgba(0,255,102,.10); stroke:var(--green); stroke-width:1.8; }
+svg .n-root { fill:rgba(0,255,102,.14); stroke:var(--green); stroke-width:2.5; }
+svg.diagram text.td { fill:#8AB4FF; font-weight:700; }
+svg.diagram text.tf { fill:var(--text); }
+svg.diagram text.th { fill:var(--yellow); }
+svg.diagram text.tx { fill:var(--green); font-weight:700; }
+
+/* Encabezado de diapositiva de comando: nombre grande + qué hace */
+.cmd-head{ display:flex; align-items:baseline; gap:22px; }
+.cmd-head .big{ font:700 64px/1 var(--font-mono); color:var(--green); }
+.cmd-head .what{ font-size:28px; font-weight:700; }
+.cmd-head .full{ font:500 16px var(--font-mono); color:var(--text-muted); }
+
+/* Variaciones de un comando (tarjetas pequeñas con ejemplo) */
+.vars{ display:grid; gap:14px; }
+.vars.c2{ grid-template-columns:repeat(2,1fr); }
+.vars.c3{ grid-template-columns:repeat(3,1fr); }
+.var{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
+.var .k{ font:700 20px var(--font-mono); color:var(--green); }
+.var .d{ font-size:16px; color:var(--text); }
+.var pre{ font:500 14.5px/1.55 var(--font-mono); background:#0A0E14; border:1px solid var(--border); border-radius:8px; padding:8px 10px; white-space:pre; overflow:hidden; color:var(--text); }
+.var pre .pr{ color:var(--green); font-weight:600; }
+.var pre .out{ color:var(--text-muted); }
+.var pre .err{ color:var(--red); }
+.var.warn{ border-color:rgba(255,95,86,.5); }
+.var.warn .k{ color:var(--red); }
+
+/* Teclas para la diapositiva de atajos */
+.kbd{ display:inline-block; font:700 18px var(--font-mono); padding:6px 12px; border-radius:8px; background:var(--surface-2); border:1px solid var(--border); border-bottom-width:3px; color:var(--text); }
+
+/* Prompt: tokens un poco más chicos */
+.prompt-k .tok .t{ font-size:40px; padding:4px 8px; }
+.prompt-k .tok{ gap:8px; }
+.prompt-k .tok .l{ font-size:14px; }
+
+/* Tabla Linux ↔ Windows */
+table.wt{ width:100%; border-collapse:collapse; font-size:17px; }
+table.wt th{ text-align:left; font:600 13px var(--font-sans); text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); padding:8px 12px; border-bottom:2px solid var(--border); }
+table.wt td{ padding:7px 12px; border-bottom:1px solid rgba(48,54,61,.6); }
+table.wt td:first-child{ font:700 17px var(--font-mono); color:var(--green); }
+table.wt td.w{ font:600 16px var(--font-mono); color:var(--blue-soft); }
+table.wt td.m{ color:var(--text-muted); font-size:16px; }
+
+.fam .head b{ font-size:24px; } .fam .head div span{ font-size:16px; } .fam .d b{ font-size:18px; } .fam .d div span{ font-size:16px; } .fam{ gap:16px; padding:22px; }
+
+/* ===== MÓDULO 2: anatomía de un script ===== */
+.anat{ display:grid; grid-template-columns:1fr 1.25fr; }
+.anat .code{ background:#0A0E14; border:1px solid var(--border); border-radius:12px 0 0 12px; padding:12px 0; font:600 21px var(--font-mono); }
+.anat .ln{ display:flex; align-items:center; height:46px; padding:0 18px; border-left:5px solid transparent; white-space:pre; }
+.anat .ln .no{ color:var(--text-dim); width:32px; font-weight:400; }
+.anat .l1{ color:var(--yellow); border-color:var(--yellow); }
+.anat .l2{ color:var(--text-muted); font-style:italic; border-color:var(--text-muted); }
+.anat .l3{ color:var(--blue-soft); border-color:var(--blue); }
+.anat .l4{ color:var(--green-soft); border-color:var(--green); }
+.anat .l5{ color:var(--orange-soft); border-color:var(--orange); }
+.anat .tags{ background:var(--surface); border:1px solid var(--border); border-left:none; border-radius:0 12px 12px 0; padding:12px 0; }
+.anat .tg{ display:flex; align-items:center; gap:12px; height:46px; padding:0 18px; font-size:16px; }
+.anat .tg b{ min-width:120px; font-size:17px; }
+.anat .t1 b{ color:var(--yellow); } .anat .t2 b{ color:var(--text-muted); } .anat .t3 b{ color:var(--blue-soft); }
+.anat .t4 b{ color:var(--green-soft); } .anat .t5 b{ color:var(--orange-soft); }
+
+/* ===== MÓDULO 2 v2: mapas y archivos antes/después ===== */
+.tree{ background:#0A0E14; border:1px solid var(--border); border-radius:12px; padding:14px 18px; }
+.tree .tt{ font:600 12px var(--font-sans); text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); margin-bottom:6px; }
+.tree pre{ font:500 16px/1.6 var(--font-mono); color:var(--text); white-space:pre; }
+.tree .td{ color:#6CA6FF; font-weight:700; }
+.tree .nw, .fbox .nw{ color:var(--green); font-weight:700; }
+.fbox{ display:grid; grid-template-columns:1fr 60px 1fr; align-items:center; }
+.fbox .file{ background:#0A0E14; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.fbox .fn{ background:var(--surface-2); padding:8px 14px; font:600 14px var(--font-mono); color:var(--text-muted); }
+.fbox pre{ padding:14px 16px; font:500 18px/1.6 var(--font-mono); color:var(--text); min-height:110px; white-space:pre; }
+.fbox .gone{ color:var(--red); text-decoration:line-through; opacity:.75; }
+.fbox .arrow{ text-align:center; font:700 34px var(--font-mono); color:var(--green); }
+
+/* ===== MÓDULO 2 v3: mapas paso a paso, permisos visuales ===== */
+svg .n-new{ fill:rgba(0,255,102,.10); stroke:var(--green); stroke-width:2; stroke-dasharray:6 4; }
+svg.diagram text.tn{ fill:var(--green); font-weight:700; }
+.mapbox{ min-height:0; position:relative; }
+.legend2{ position:absolute; right:8px; bottom:0; display:flex; gap:14px; font:500 12px var(--font-mono); color:var(--text-muted); }
+.legend2 .lg::before{ content:""; display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-1px; border:1.5px solid; }
+.legend2 .dir::before{ border-color:var(--blue); background:rgba(54,123,240,.16); }
+.legend2 .file::before{ border-color:var(--border); background:var(--surface); }
+.legend2 .hid::before{ border-color:var(--yellow); border-style:dashed; }
+.legend2 .new::before{ border-color:var(--green); border-style:dashed; background:rgba(0,255,102,.1); }
+.frag{ opacity:0; transition:opacity .3s; }
+.frag.shown{ opacity:1; }
+.fragc{ display:none; } .fragc.shown{ display:flex; }
+.pstr{ display:inline-flex; gap:4px; font:700 26px var(--font-mono); }
+.pstr .pg{ padding:2px 6px; border-radius:6px; border:1.5px solid var(--border); color:var(--text-muted); }
+.pstr .g1{ border-color:var(--green); } .pstr .g2{ border-color:var(--blue); } .pstr .g3{ border-color:var(--orange); }
+.pstr i{ font-style:normal; } .pstr i.on{ color:#0D1117; background:var(--green); border-radius:3px; }
+.pleg{ display:flex; gap:12px; justify-content:center; font:600 14px var(--font-mono); }
+.pleg span{ padding:3px 10px; border-radius:6px; border:1.5px solid; } .pleg .g1{ border-color:var(--green); color:var(--green); } .pleg .g2{ border-color:var(--blue); color:var(--blue-soft); } .pleg .g3{ border-color:var(--orange); color:var(--orange-soft); }
+.ptable{ display:flex; flex-direction:column; gap:12px; }
+.phead{ display:grid; grid-template-columns:1.1fr 1.3fr 40px 1.3fr; font:600 12px var(--font-sans); text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim); padding:0 16px; }
+.prow{ display:grid; grid-template-columns:1.1fr 1.3fr 40px 1.3fr; align-items:center; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+.pcmd{ display:flex; flex-direction:column; gap:6px; } .pcmd code{ font-size:16px; } .pcmd span{ font-size:14px; color:var(--text-muted); }
+.pside{ display:flex; align-items:center; gap:10px; font:700 16px var(--font-mono); }
+.parr{ text-align:center; color:var(--green); font:700 26px var(--font-mono); }
+.runflow{ display:grid; grid-template-columns:1fr 90px 1fr; align-items:center; margin-top:6px; }
+.rf{ background:#0A0E14; border:1px solid var(--border); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:4px; font:500 14px var(--font-mono); }
+.rf b{ color:var(--yellow); } .rf.ok{ border-color:var(--green); } .rf.ok span{ color:var(--green-soft); }
+.rfa, .afa{ text-align:center; color:var(--green); font:700 28px var(--font-mono); }
+.rfa small, .afa small{ display:block; font:500 12px var(--font-sans); color:var(--text-muted); }
+.var.struct{ border-color:rgba(0,255,102,.45); background:rgba(0,255,102,.05); }
+.lbl2{ font:600 11px var(--font-sans); text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim); }
+.argflow{ display:grid; grid-template-columns:1fr 170px 1fr; align-items:center; }
+
+/* ===== M3 v2 ===== */
+.atgroup{ display:flex; flex-direction:column; align-items:center; }
+.atgroup .brace{ width:96%; height:14px; border:3px solid var(--green); border-top:none; border-radius:0 0 14px 14px; margin-top:6px; }
+.atgroup .bl{ font:700 15px var(--font-mono); color:var(--green); margin-top:6px; }
+.blocks{ display:flex; flex-direction:column; gap:10px; }
+.bk{ display:grid; grid-template-columns:200px 1.6fr 1fr; align-items:center; gap:14px; background:var(--surface); border:1px solid var(--border); border-left:5px solid; border-radius:12px; padding:10px 14px; }
+.bk.b1{ border-left-color:var(--yellow); } .bk.b2{ border-left-color:var(--blue); } .bk.b3{ border-left-color:var(--green); }
+.bk .bh{ font:700 15px var(--font-sans); }
+.bk.b1 .bh{ color:var(--yellow); } .bk.b2 .bh{ color:var(--blue-soft); } .bk.b3 .bh{ color:var(--green); }
+.bk pre{ font:500 13.5px/1.55 var(--font-mono); background:#0A0E14; border:1px solid var(--border); border-radius:8px; padding:8px 10px; white-space:pre; overflow:hidden; }
+.bk .br{ font-size:14.5px; color:var(--text-muted); line-height:1.4; }
+</style>
+</head>
+
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="viewport">
+<main class="stage" id="stage">
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <marker id="flecha" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#E95420"/></marker>
+      <marker id="flecha-verde" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#00FF66"/></marker>
+    </defs>
+  </svg>
+
+  <div class="brand"><b>Curies Community</b> · Linux &amp; Bash desde cero · Módulo 3</div>
+
+  <!-- ============================================================
+       DIAPOSITIVA 1 · PORTADA
+       ============================================================ -->
+  <section class="slide cover" data-title="Portada">
+    <p class="kicker">curies community</p>
+    <h1>Linux <span>desde cero</span></h1>
+    <p class="lead">Módulo 3 · Laboratorio práctico: tu script en GitHub</p>
+    <div class="terminal" style="max-width:760px">
+      <div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">usuario@maquina: ~/mi-repo</span></div>
+      <pre class="term-body"><span class="pr">usuario@maquina:~/mi-repo$</span> subir_repo estructura.sh
+<span class="out">[main 8d0c935] Actualización: estructura.sh</span></pre>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 2 · PLAN DE HOY
+       ============================================================ -->
+  <section class="slide" data-title="Plan de hoy" style="justify-content:center">
+    <p class="kicker">plan de hoy</p>
+    <h2>¿Qué haremos hoy?</h2>
+    <div class="grid-3">
+      <div class="card green"><h3><span class="hl-green">1</span> Repaso</h3><p>Lo que vimos ayer, en una diapositiva.</p></div>
+      <div class="card blue"><h3><span class="hl-blue">2</span> subir_repo, bien explicado</h3><p>¿Por qué es una función y no un script? ¿Dónde vive? ¿Cómo se instala?</p></div>
+      <div class="card orange"><h3><span class="hl-orange">3</span> El reto</h3><p>Tu script <code class="c">estructura.sh</code>, paso a paso, hasta subirlo a GitHub.</p></div>
+    </div>
+    <div class="week">
+      <div class="day"><small>M1</small><b>Fundamentos de Linux y la terminal</b></div>
+      <div class="day"><small>M2</small><b>Crear archivos y Bash scripting</b></div>
+      <div class="day today"><small>M3 · HOY</small><b>Laboratorio y entrega en GitHub</b></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 3 · REPASO DEL MÓDULO 2
+       ============================================================ -->
+  <section class="slide" data-title="Repaso de ayer" style="justify-content:center">
+    <p class="kicker">1 · repaso</p>
+    <h2>Lo que vimos ayer</h2>
+    <div class="card" style="padding:10px 16px">
+      <table class="wt">
+        <thead><tr><th>Comando</th><th>Qué hace</th><th>Ejemplo</th></tr></thead>
+        <tbody>
+          <tr><td>mkdir -p</td><td>Crea carpetas (y las de en medio)</td><td class="w">mkdir -p nuevo/app/src</td></tr>
+          <tr><td>touch</td><td>Crea un archivo vacío</td><td class="w">touch saludo.txt</td></tr>
+          <tr><td>echo &gt; · &gt;&gt;</td><td>Reemplaza · agrega al final</td><td class="w">echo 'Hola' &gt; notas.txt</td></tr>
+          <tr><td>chmod +x</td><td>Da permiso de ejecutar</td><td class="w">chmod +x mi-script.sh</td></tr>
+          <tr><td>nano</td><td>Edita un archivo en la terminal</td><td class="w">nano mi-script.sh</td></tr>
+          <tr><td>./script.sh</td><td>Ejecuta un script de esta carpeta</td><td class="w">./mi-script.sh</td></tr>
+          <tr><td>$1</td><td>Primera palabra después del script</td><td class="w">./saludo.sh Ana</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 4 · EL PROBLEMA
+       ============================================================ -->
+  <section class="slide" data-title="El problema" style="justify-content:center">
+    <p class="kicker">2 · subir_repo</p>
+    <h2>El problema: siempre los mismos 3 comandos</h2>
+    <p class="lead">Cada vez que subes algo a GitHub escribes esto:</p>
+    <div class="grid-3">
+      <div class="var"><span class="k">1 · git add</span><span class="d">Elige qué archivos subir.</span><pre><span class="pr">$</span> git add estructura.sh</pre></div>
+      <div class="var"><span class="k">2 · git commit</span><span class="d">Guarda el cambio con un mensaje.</span><pre><span class="pr">$</span> git commit -m "Mi script"</pre></div>
+      <div class="var"><span class="k">3 · git push</span><span class="d">Lo manda a GitHub.</span><pre><span class="pr">$</span> git push</pre></div>
+    </div>
+    <div class="flow" style="margin-top:6px">
+      <div class="step"><span class="e">😩</span><b>Hoy</b><span>3 comandos × cada vez que subes algo</span></div>
+      <div class="to">→</div>
+      <div class="step hl"><span class="e">⚡</span><b>La idea</b><span>1 comando que haga los 3: <code class="c">subir_repo estructura.sh</code></span></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 5 · DOS FORMAS DE GUARDAR COMANDOS
+       ============================================================ -->
+  <section class="slide" data-title="Script vs función" style="justify-content:center">
+    <p class="kicker">2 · subir_repo</p>
+    <h2>Script o función: dos formas de guardar comandos</h2>
+    <div class="grid-2">
+      <div class="card blue">
+        <svg class="ico" viewBox="0 0 48 48" style="color:var(--blue-soft)"><path d="M12 4h17l9 9v31H12z"/><path d="M29 4v9h9M18 24h14M18 30h14M18 36h9"/></svg>
+        <h3 class="hl-blue">Script</h3>
+        <p>Un <b>archivo</b> guardado en una carpeta.</p>
+        <pre class="term-body" style="font-size:14px; padding:8px 10px; background:#0A0E14; border-radius:8px; margin-top:8px"><span class="cm"># archivo hola.sh (se escribe en nano)</span>
+#!/bin/bash
+echo "Hola"
+<span class="pr">$</span> chmod +x hola.sh
+<span class="pr">$</span> ./hola.sh       <span class="cm"># por su ruta</span></pre>
+      </div>
+      <div class="card green">
+        <svg class="ico" viewBox="0 0 48 48"><rect x="4" y="8" width="40" height="32" rx="3"/><path d="M4 15h40M10 23l5 4-5 4M19 32h9"/></svg>
+        <h3 class="hl-green">Función</h3>
+        <p>Un <b>comando con nombre</b> que vive dentro de tu terminal.</p>
+        <pre class="term-body" style="font-size:14px; padding:8px 10px; background:#0A0E14; border-radius:8px; margin-top:8px"><span class="cm"># se escribe en la terminal o en ~/.zshrc</span>
+hola() {
+  echo "Hola"
+}
+<span class="pr">$</span> hola            <span class="cm"># por su nombre</span></pre>
+      </div>
+    </div>
+    <div class="card" style="padding:10px 16px">
+      <table class="wt">
+        <thead><tr><th></th><th>Script</th><th>Función</th></tr></thead>
+        <tbody>
+          <tr><td style="color:var(--text-muted); font-family:var(--font-sans); font-weight:600">¿Cómo la usas?</td><td>Escribes su <b>ruta</b>: <code class="c">./subir.sh</code></td><td>Escribes su <b>nombre</b>: <code class="c">subir_repo</code></td></tr>
+          <tr><td style="color:var(--text-muted); font-family:var(--font-sans); font-weight:600">¿Desde dónde?</td><td>Desde su carpeta (o con la ruta completa)</td><td><b>Desde cualquier carpeta</b></td></tr>
+          <tr><td style="color:var(--text-muted); font-family:var(--font-sans); font-weight:600">¿Necesita chmod +x?</td><td>Sí</td><td>No</td></tr>
+          <tr><td style="color:var(--text-muted); font-family:var(--font-sans); font-weight:600">Parecido a…</td><td>Un programa que abres</td><td>Un comando como <code class="c">ls</code> o <code class="c">cd</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 6 · ¿POR QUÉ FUNCIÓN? (diagrama)
+       ============================================================ -->
+  <section class="slide" data-title="¿Por qué función?" style="justify-content:center">
+    <p class="kicker">2 · subir_repo</p>
+    <h2>¿Por qué <code class="c" style="font-size:.85em">subir_repo</code> es una función?</h2>
+    <p class="lead">Porque la usas <b>dentro de cada repo</b>, y cada repo está en una carpeta distinta. Un repo es solo una carpeta que tiene Git; la función se puede llamar desde <b>cualquier</b> carpeta.</p>
+    <div class="grid-2">
+      <div class="var warn"><span class="k">Si fuera un script ✗</span>
+        <div class="tree" style="margin:4px 0"><pre>~/
+├── <span class="td">mis-scripts/</span>
+│   └── subir.sh   <span style="color:var(--yellow)">← vive aquí</span>
+├── <span class="td">repo-a/</span>     <span class="hl-orange">← trabajas aquí</span>
+└── <span class="td">repo-b/</span></pre></div>
+<pre><span class="pr">~/repo-a$</span> ./subir.sh archivo
+<span class="err">no such file or directory: ./subir.sh</span>
+<span class="pr">~/repo-a$</span> ~/mis-scripts/subir.sh archivo   <span class="cm"># ruta larga</span></pre></div>
+      <div class="var"><span class="k">Como función ✓</span>
+        <div class="tree" style="margin:4px 0"><pre>~/
+├── <span class="td">repo-a/</span>     <span class="hl-green">← funciona aquí</span>
+└── <span class="td">repo-b/</span>     <span class="hl-green">← y aquí</span></pre></div>
+<pre><span class="pr">~/repo-a$</span> subir_repo archivo
+<span class="pr">~/repo-b$</span> subir_repo archivo</pre>
+        <span class="d">La función vive en tu terminal, no en una carpeta: la llamas por su nombre desde donde estés, igual que <code class="c">ls</code>.</span></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 7 · LA FUNCIÓN, LÍNEA POR LÍNEA
+       ============================================================ -->
+  <section class="slide" data-title="La función línea por línea" style="justify-content:center">
+    <p class="kicker">2 · subir_repo</p>
+    <h2>La función, línea por línea</h2>
+    <div class="anat">
+      <div class="code">
+        <div class="ln l3"><span class="no">1</span>subir_repo() {</div>
+        <div class="ln l4"><span class="no">2</span>  git add "$@"</div>
+        <div class="ln l4"><span class="no">3</span>  git commit -m "Actualización: $*"</div>
+        <div class="ln l4"><span class="no">4</span>  git push</div>
+        <div class="ln l3"><span class="no">5</span>}</div>
+      </div>
+      <div class="tags">
+        <div class="tg t3"><b>Nombre</b><span>Así se llamará tu comando. Los <code class="c">()</code> dicen “es una función”.</span></div>
+        <div class="tg t4"><b>$@</b><span>Las palabras que escribes después de <code class="c">subir_repo</code>: git add las toma como archivos.</span></div>
+        <div class="tg t4"><b>$*</b><span>Las mismas palabras, juntas en el mensaje del commit.</span></div>
+        <div class="tg t4"><b>push</b><span>Lo manda a GitHub.</span></div>
+        <div class="tg t3"><b>Fin</b><span>La llave <code class="c">}</code> cierra la función.</span></div>
+      </div>
+    </div>
+    <p class="muted" style="text-align:center; font-size:17px">Lo de adentro de <code class="c">{ }</code> son los mismos 3 comandos de siempre. El mensaje siempre dirá <b>“Actualización: …”</b>; para cambiarlo, editas ese texto en la función.</p>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 8 · ¿QUÉ PASA CUANDO LA USAS? (traducción)
+       ============================================================ -->
+  <section class="slide" data-title="¿Qué pasa al usarla?" style="justify-content:center">
+    <p class="kicker">2 · subir_repo</p>
+    <h2>¿Qué pasa cuando escribes <code class="c" style="font-size:.85em">subir_repo</code>?</h2>
+    <div class="card prompt-k" style="padding:18px">
+      <div class="prompt-anatomy">
+        <div class="tok d"><span class="t">subir_repo</span><span class="l">la función</span></div>
+        <div class="atgroup">
+          <div style="display:flex; gap:4px">
+            <div class="tok u"><span class="t">estructura.sh</span><span class="l">$1</span></div>
+            <div class="tok h"><span class="t">README.md</span><span class="l">$2</span></div>
+          </div>
+          <div class="brace"></div>
+          <div class="bl">$@ = todo lo que va después del nombre</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="padding:10px 16px">
+      <table class="wt">
+        <thead><tr><th>Dentro de la función</th><th>Se convierte en</th></tr></thead>
+        <tbody>
+          <tr><td>git add "$@"</td><td class="w">git add estructura.sh README.md</td></tr>
+          <tr><td>git commit -m "Actualización: $*"</td><td class="w">git commit -m "Actualización: estructura.sh README.md"</td></tr>
+          <tr><td>git push</td><td class="w">git push</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 9 · ¿DÓNDE VIVE? ~/.zshrc (diagrama)
+       ============================================================ -->
+  <section class="slide" data-title="¿Dónde vive la función?" style="justify-content:center">
+    <p class="kicker">2 · subir_repo</p>
+    <h2>¿Dónde vive la función? En <code class="c" style="font-size:.85em">~/.zshrc</code></h2>
+    <p class="lead">Si la escribes directo en la terminal, se pierde al cerrarla. Por eso se guarda en un archivo oculto que la terminal lee <b>cada vez que se abre</b>.</p>
+    <div class="levels" style="grid-template-columns:1fr 28px 1fr 28px 1fr 28px 1fr">
+      <div class="lv c2"><svg class="ico" viewBox="0 0 48 48"><rect x="4" y="8" width="40" height="32" rx="3"/><path d="M4 15h40M10 23l5 4-5 4M19 32h9"/></svg><b>1 · Abres la terminal</b><span>Se enciende vacía.</span></div>
+      <div class="ar">→</div>
+      <div class="lv c1"><svg class="ico" viewBox="0 0 48 48"><path d="M12 4h17l9 9v31H12z"/><path d="M29 4v9h9M18 24h14M18 30h14"/></svg><b>2 · Lee ~/.zshrc</b><code>configuración</code><span>Archivo oculto en tu carpeta personal.</span></div>
+      <div class="ar">→</div>
+      <div class="lv c3"><svg class="ico" viewBox="0 0 48 48"><path d="M8 24h32M24 8v32"/><circle cx="24" cy="24" r="18"/></svg><b>3 · Carga subir_repo</b><span>La función queda lista en memoria.</span></div>
+      <div class="ar">→</div>
+      <div class="lv c4"><svg class="ico" viewBox="0 0 48 48"><path d="M17 24l5 5 9-10"/><circle cx="24" cy="24" r="18"/></svg><b>4 · La usas</b><code>subir_repo …</code><span>En cualquier carpeta.</span></div>
+    </div>
+    <div class="grid-3">
+      <div class="card"><h3>¿Cómo se guarda ahí?</h3><p>Es un archivo de texto: lo abres con <code class="c">nano</code>, pegas la función al final y guardas.</p></div>
+      <div class="card"><h3>¿Y si cierro la terminal?</h3><p>La función se borra de esa ventana, pero la próxima terminal la vuelve a leer de <code class="c">~/.zshrc</code>.</p></div>
+      <div class="card"><h3>¿Qué archivo?</h3><p>Kali (zsh): <code class="c">~/.zshrc</code><br>Ubuntu (bash): <code class="c">~/.bashrc</code></p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 10 · INSTALARLA PASO A PASO
+       ============================================================ -->
+  <section class="slide" data-title="Instalar subir_repo" style="justify-content:center">
+    <p class="kicker">2 · subir_repo</p>
+    <h2>Instálala: 4 pasos (solo una vez)</h2>
+    <div class="vars c2">
+      <div class="var"><span class="k">1 · Abre tu configuración</span>
+<span class="d">Desde <b>cualquier carpeta</b>: <code class="c">~</code> siempre es tu carpeta personal.</span><pre><span class="pr">$</span> nano ~/.zshrc       <span class="cm"># Ubuntu: nano ~/.bashrc</span></pre></div>
+      <div class="var"><span class="k">2 · Baja al final y pega</span>
+<pre>subir_repo() {
+  git add "$@"
+  git commit -m "Actualización: $*"
+  git push
+}</pre><span class="d">Guarda con Ctrl + O y Enter; sal con Ctrl + X.</span></div>
+      <div class="var"><span class="k">3 · Cárgala ahora</span><span class="d"><code class="c">source</code> = “lee este archivo <b>ahora</b>”. Sin esto, tendrías que cerrar y abrir la terminal.</span>
+<pre><span class="pr">$</span> source ~/.zshrc</pre></div>
+      <div class="var"><span class="k">4 · Comprueba que existe</span>
+<pre><span class="pr">$</span> type subir_repo
+<span class="out">subir_repo is a shell function</span></pre></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 11 · EL RETO
+       ============================================================ -->
+  <section class="slide" data-title="El reto" style="justify-content:center">
+    <p class="kicker">3 · el reto</p>
+    <h2>El reto: tu script <code class="c" style="font-size:.85em">estructura.sh</code> en GitHub</h2>
+    <div class="card prompt-k" style="padding:16px">
+      <div class="prompt-anatomy">
+        <div class="tok d"><span class="t">./estructura.sh</span><span class="l">tu script<br>(lo escribes tú)</span></div>
+        <div class="tok u"><span class="t">mi-app</span><span class="l">el nombre del proyecto = $1<br>(no existe: el script la crea)</span></div>
+      </div>
+    </div>
+    <div class="levels" style="grid-template-columns:1fr 28px 1fr 28px 1fr 28px 1fr">
+      <div class="lv c2"><b>1 · Tu repo</b><code>git clone</code><span>Creas y clonas tu repo público.</span></div>
+      <div class="ar">→</div>
+      <div class="lv c1"><b>2 · Tu script</b><code>nano estructura.sh</code><span>Lo escribes.</span></div>
+      <div class="ar">→</div>
+      <div class="lv c3"><b>3 · Ejecútalo</b><code>./estructura.sh mi-app</code><span>Crea la carpeta mi-app.</span></div>
+      <div class="ar">→</div>
+      <div class="lv c4"><b>4 · Súbelo</b><code>subir_repo …</code><span>Aquí usas <b>la función</b>.</span></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 12 · ANTES DE EMPEZAR
+       ============================================================ -->
+  <section class="slide" data-title="Antes de empezar" style="justify-content:center">
+    <p class="kicker">3 · el reto · paso 0</p>
+    <h2>Antes de empezar, revisa que tienes:</h2>
+    <ul class="checklist">
+      <li><span>Tu cuenta de GitHub, con tu sesión abierta</span></li>
+      <li><span>Git instalado: <code class="c">git --version</code></span></li>
+      <li><span>Tu token (lo pegas cuando <code class="c">git push</code> pida la contraseña)</span></li>
+      <li><span><code class="c">subir_repo</code> instalada: <code class="c">type subir_repo</code></span></li>
+    </ul>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 13 · PASO 1: CREAR Y CLONAR EL REPO
+       ============================================================ -->
+  <section class="slide" data-title="Paso 1: tu repo" style="justify-content:center">
+    <p class="kicker">3 · el reto · paso 1</p>
+    <h2>Crea tu repositorio y clónalo</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>En GitHub</h3>
+        <ol class="steps" style="gap:10px">
+          <li><span><b>+</b> (arriba a la derecha) → <b>New repository</b></span></li>
+          <li><span>Nombre: <code class="c">reto-bash</code></span></li>
+          <li><span>Marca <b>Public</b> y <b>Add a README file</b></span></li>
+          <li><span><b>Create repository</b> → botón verde <b>Code</b> → copia el link HTTPS</span></li>
+        </ol>
+      </div>
+      <div class="var"><span class="k">En tu terminal</span>
+<pre style="font-size:15px"><span class="pr">$</span> cd ~
+<span class="pr">$</span> git clone https://github.com/<span class="hl-yellow">tu-usuario</span>/reto-bash.git
+<span class="pr">$</span> cd reto-bash
+<span class="pr">$</span> ls
+<span class="out">README.md</span></pre>
+        <span class="d">Desde aquí, todo se hace <b>dentro de <code class="c">reto-bash</code></b>.</span></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 14 · PASO 2: EL SCRIPT POR BLOQUES
+       ============================================================ -->
+  <section class="slide" data-title="Paso 2: el script" style="justify-content:center">
+    <p class="kicker">3 · el reto · paso 2</p>
+    <h2>Escribe tu script: <code class="c" style="font-size:.85em">nano estructura.sh</code></h2>
+    <p class="muted" style="font-size:17px">Cada quien lo escribe en nano, bloque por bloque. Cambia <span class="hl-yellow">Tu Nombre</span> por el tuyo.</p>
+    <div class="blocks">
+      <div class="bk b1"><div class="bh">Bloque 1 · Prepara</div>
+<pre>#!/bin/bash
+# estructura.sh: crea un proyecto
+PROYECTO="$1"</pre>
+        <div class="br">→ Bash sabrá ejecutarlo y guarda el nombre que escribas (<code class="c">mi-app</code>).</div></div>
+      <div class="bk b2"><div class="bh">Bloque 2 · Crea carpetas y archivos</div>
+<pre>mkdir -p "$PROYECTO/src" "$PROYECTO/docs" "$PROYECTO/img"
+touch "$PROYECTO/src/main.sh"
+touch "$PROYECTO/docs/.gitkeep" "$PROYECTO/img/.gitkeep"</pre>
+        <div class="br">→ <code class="c">mi-app/src/main.sh</code>, <code class="c">mi-app/docs/</code>, <code class="c">mi-app/img/</code>. Los <code class="c">.gitkeep</code> sirven para que GitHub muestre las carpetas vacías.</div></div>
+      <div class="bk b3"><div class="bh">Bloque 3 · Escribe el README y avisa</div>
+<pre>echo "# $PROYECTO" &gt; "$PROYECTO/README.md"
+echo "Hecho por: <span class="hl-yellow">Tu Nombre</span>" &gt;&gt; "$PROYECTO/README.md"
+echo "Proyecto $PROYECTO creado"</pre>
+        <div class="br">→ <code class="c">mi-app/README.md</code> con el título y tu nombre, y un mensaje al terminar.</div></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA · ASÍ QUEDA LA ESTRUCTURA DEL SCRIPT
+       ============================================================ -->
+  <section class="slide" data-title="Así queda la estructura" style="justify-content:center">
+    <p class="kicker">3 · el reto · paso 2</p>
+    <h2>Esto es lo que crea el script</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:center">
+      <div class="tree"><div class="tt">./estructura.sh mi-app</div>
+<pre style="font-size:20px"><span class="nw">mi-app/</span>
+├── README.md
+├── <span class="td">src/</span>
+│   └── main.sh
+├── <span class="td">docs/</span>
+└── <span class="td">img/</span></pre></div>
+      <div class="vars" style="gap:10px">
+        <div class="var"><span class="k">mkdir -p</span><span class="d">crea <code class="c">src/</code>, <code class="c">docs/</code> e <code class="c">img/</code></span></div>
+        <div class="var"><span class="k">touch</span><span class="d">crea <code class="c">src/main.sh</code></span></div>
+        <div class="var"><span class="k">echo &gt; y &gt;&gt;</span><span class="d">crea <code class="c">README.md</code> con título y tu nombre</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA · TU PARTE: UNA CARPETA EXTRA
+       ============================================================ -->
+  <section class="slide" data-title="Tu parte: carpeta extra" style="justify-content:center">
+    <p class="kicker">3 · el reto · tu parte</p>
+    <h2>Tu parte: agrega una carpeta y una subcarpeta</h2>
+    <p class="lead">Agrega a tu script una carpeta <b>al mismo nivel</b> que <code class="c">src</code>, <code class="c">docs</code> e <code class="c">img</code>, con una <b>subcarpeta</b> adentro. El tema lo eliges tú: tu escuela, animales, música…</p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:center">
+      <div class="var"><span class="k">Agrega esta línea a tu script</span>
+<pre style="font-size:15px">mkdir -p "$PROYECTO/<span class="hl-green">escuela/tareas</span>"
+touch "$PROYECTO/<span class="hl-green">escuela/tareas</span>/.gitkeep"</pre>
+        <span class="d">Cambia <code class="c">escuela/tareas</code> por tu tema. El <code class="c">.gitkeep</code> hace que GitHub muestre la carpeta.</span></div>
+      <div class="tree"><div class="tt">Así quedaría</div>
+<pre style="font-size:19px">mi-app/
+├── README.md
+├── <span class="td">src/</span>
+│   └── main.sh
+├── <span class="td">docs/</span>
+├── <span class="td">img/</span>
+└── <span class="nw">escuela/     ← nueva</span>
+    └── <span class="nw">tareas/  ← nueva</span></pre></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 15 · PASO 3: EJECUTAR Y COMPROBAR
+       ============================================================ -->
+  <section class="slide" data-title="Paso 3: ejecutar" style="justify-content:center">
+    <p class="kicker">3 · el reto · paso 3</p>
+    <h2>Ejecútalo y comprueba</h2>
+    <div class="grid-2">
+      <div class="terminal"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">~/reto-bash</span></div>
+<pre class="term-body" style="font-size:16px"><span class="pr">$</span> chmod +x estructura.sh
+<span class="pr">$</span> ./estructura.sh mi-app
+<span class="out">Proyecto mi-app creado</span>
+<span class="pr">$</span> ls mi-app
+<span class="out">README.md  <span class="ls-blue">docs</span>  <span class="ls-blue">img</span>  <span class="ls-blue">src</span></span>
+<span class="pr">$</span> ls mi-app/src
+<span class="out">main.sh</span>
+<span class="pr">$</span> cat mi-app/README.md
+<span class="out"># mi-app
+Hecho por: Tu Nombre</span></pre></div>
+      <div class="tree"><div class="tt">Mapa · reto-bash</div>
+<pre>reto-bash/
+├── README.md
+├── <span class="nw">estructura.sh  ← tu script</span>
+└── <span class="nw">mi-app/        ← lo que creó</span>
+    ├── <span class="nw">README.md</span>
+    ├── <span class="nw">src/</span>
+    │   └── <span class="nw">main.sh</span>
+    ├── <span class="nw">docs/</span>
+    └── <span class="nw">img/</span></pre>
+        <p class="small" style="margin-top:10px; color:var(--text-muted)">Siempre escribe el nombre después del script: <code class="c">./estructura.sh mi-app</code></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 16 · PASO 4: SUBIRLO Y ENTREGAR
+       ============================================================ -->
+  <section class="slide" data-title="Paso 4: subir y entregar" style="justify-content:center">
+    <p class="kicker">3 · el reto · paso 4</p>
+    <h2>Súbelo con <code class="c" style="font-size:.85em">subir_repo</code> y entrega tu link</h2>
+    <div class="terminal"><div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">~/reto-bash</span></div>
+<pre class="term-body" style="font-size:17px"><span class="pr">$</span> subir_repo estructura.sh mi-app
+<span class="out">[main 8d0c935] Actualización: estructura.sh mi-app
+ 5 files changed, 12 insertions(+)
+ create mode 100755 estructura.sh
+ create mode 100644 mi-app/README.md
+ ...
+Username for 'https://github.com':</span> <span class="hl-green">tu-usuario</span>
+<span class="out">Password for 'https://tu-usuario@github.com':</span> <span class="cm">← tu token</span></pre></div>
+    <div class="grid-2">
+      <div class="card green"><h3>Revisa en GitHub</h3><p>Recarga tu repo: deben aparecer <code class="c">estructura.sh</code> y la carpeta <code class="c">mi-app</code>.</p></div>
+      <div class="card yellow"><h3>Entrega</h3><p>Pega en el chat el link: <code class="c">https://github.com/tu-usuario/reto-bash</code></p></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 17 · ERRORES COMUNES
+       ============================================================ -->
+  <section class="slide" data-title="Errores comunes" style="justify-content:center">
+    <p class="kicker">3 · el reto</p>
+    <h2>Si algo falla</h2>
+    <div class="card" style="padding:10px 16px">
+      <table class="wt">
+        <thead><tr><th>Error</th><th>Causa</th><th>Solución</th></tr></thead>
+        <tbody>
+          <tr><td style="font-size:14px">subir_repo: command not found</td><td>No está cargada</td><td class="w">source ~/.zshrc</td></tr>
+          <tr><td style="font-size:14px">not a git repository</td><td>Estás fuera de tu repo</td><td class="w">cd ~/reto-bash</td></tr>
+          <tr><td style="font-size:14px">permission denied: ./estructura.sh</td><td>Falta el permiso</td><td class="w">chmod +x estructura.sh</td></tr>
+          <tr><td style="font-size:14px">mkdir: /src: Permission denied</td><td>Olvidaste el nombre ($1 vacío)</td><td class="w">./estructura.sh mi-app</td></tr>
+          <tr><td style="font-size:14px">Invalid username or token</td><td>Correo o contraseña en vez de usuario y token</td><td class="m">Usuario de GitHub + token</td></tr>
+          <tr><td style="font-size:14px">No aparecen docs/ ni img/</td><td>Git no sube carpetas vacías</td><td class="m">Los .gitkeep del script</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 18 · CÓMO SE EVALÚA
+       ============================================================ -->
+  <section class="slide" data-title="Cómo se evalúa" style="justify-content:center">
+    <p class="kicker">3 · el reto</p>
+    <h2>¿Cómo se evalúa?</h2>
+    <ul class="checklist">
+      <li><span>El repositorio es <b>público</b> y el link funciona</span></li>
+      <li><span><code class="c">estructura.sh</code> empieza con <code class="c">#!/bin/bash</code> y tiene un comentario</span></li>
+      <li><span>Usa una variable (o <code class="c">$1</code>) para el nombre del proyecto</span></li>
+      <li><span>Crea al menos 3 carpetas con <code class="c">mkdir -p</code> y un archivo con <code class="c">touch</code></span></li>
+      <li><span>Crea un <code class="c">README.md</code> con título y tu nombre usando <code class="c">&gt;</code> y <code class="c">&gt;&gt;</code></span></li>
+      <li><span>La estructura creada también está subida al repo</span></li>
+    </ul>
+  </section>
+
+  <!-- ============================================================
+       DIAPOSITIVA 19 · CIERRE DEL CURSO
+       ============================================================ -->
+  <section class="slide" data-title="Cierre" style="justify-content:center">
+    <p class="kicker">cierre</p>
+    <h2>Lo que aprendiste en 3 días</h2>
+    <div class="grid-3">
+      <div class="card green"><h3>M1 · La terminal</h3><p><code class="c">pwd</code> <code class="c">ls</code> <code class="c">cd</code> <code class="c">cat</code> <code class="c">cp</code> <code class="c">mv</code> <code class="c">rm</code>, rutas y atajos</p></div>
+      <div class="card blue"><h3>M2 · Bash scripting</h3><p><code class="c">mkdir</code> <code class="c">touch</code> <code class="c">echo</code> <code class="c">chmod</code>, scripts, variables y funciones</p></div>
+      <div class="card orange"><h3>M3 · En GitHub</h3><p>Tu propio comando y tu primer script publicado</p></div>
+    </div>
+    <p class="thanks">¡Gracias por aprender con Curies! <span>🐧</span></p>
+  </section>
+
+</main>
+</div>
+
+<!-- ===== Barra de controles ===== -->
+<nav class="controls" aria-label="Controles de la presentación">
+  <span class="title" id="slideTitle"></span>
+  <div class="nav">
+    <button id="btnPrev" aria-label="Diapositiva anterior">← Anterior</button>
+    <span class="counter" id="counter"></span>
+    <button id="btnNext" aria-label="Diapositiva siguiente">Siguiente →</button>
+    <button id="btnFull" title="Pantalla completa (F)">⛶</button>
+  </div>
+  <span class="hint">← → navegar · F pantalla completa</span>
+</nav>
+
+<script>
+/* =====================================================================
+   LÓGICA DE NAVEGACIÓN (no necesitas tocar esto para editar contenido)
+   ===================================================================== */
+(function(){
+  const stage   = document.getElementById('stage');
+  const slides  = Array.from(document.querySelectorAll('.slide'));
+  const counter = document.getElementById('counter');
+  const title   = document.getElementById('slideTitle');
+  const bar     = document.getElementById('progress');
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
+  const btnFull = document.getElementById('btnFull');
+  let current = 0;
+
+  /* Escala el escenario 1280×720 para que quepa en la ventana */
+  function fit(){
+    const availW = window.innerWidth  - 24;
+    const availH = window.innerHeight - 56 - 24; // 56 = barra de controles
+    const s = Math.min(availW / 1280, availH / 720);
+    stage.style.transform = `translate(-50%, -50%) scale(${s})`;
+  }
+
+  /* Muestra la diapositiva n */
+  function go(n){
+    current = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => {
+      s.classList.toggle('active', i === current);
+      s.classList.toggle('prev',   i <  current);
+    });
+    counter.innerHTML = `<b>${current + 1}</b> / ${slides.length}`;
+    title.textContent = slides[current].dataset.title || '';
+    bar.style.width   = ((current + 1) / slides.length * 100) + '%';
+    btnPrev.disabled  = current === 0;
+    btnNext.disabled  = current === slides.length - 1;
+    history.replaceState(null, '', '#' + (current + 1)); // permite compartir #5, #12…
+  }
+
+
+  /* Pasos dentro de una diapositiva (.frag): → muestra el siguiente paso antes de avanzar */
+  function frags(i){ return Array.from(slides[i].querySelectorAll('.frag')).sort((a,b)=>a.dataset.f-b.dataset.f); }
+  function setFrags(i, all){ frags(i).forEach(f=>f.classList.toggle('shown', all)); }
+  function next(){ const h=frags(current).find(f=>!f.classList.contains('shown')); if(h){ const s=h.dataset.f; frags(current).filter(f=>f.dataset.f===s).forEach(f=>f.classList.add('shown')); return; } if(current<slides.length-1){ setFrags(current+1,false); go(current+1); } }
+  function prev(){ const sh=frags(current).filter(f=>f.classList.contains('shown')); if(sh.length){ const s=sh[sh.length-1].dataset.f; sh.filter(f=>f.dataset.f===s).forEach(f=>f.classList.remove('shown')); return; } if(current>0){ setFrags(current-1,true); go(current-1); } }
+
+  function toggleFull(){
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  }
+
+  /* Teclado */
+  document.addEventListener('keydown', e => {
+    if (['ArrowRight','PageDown',' '].includes(e.key)) { e.preventDefault(); next(); }
+    if (['ArrowLeft','PageUp'].includes(e.key))        { e.preventDefault(); prev(); }
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End')  go(slides.length - 1);
+    if (e.key === 'f' || e.key === 'F') toggleFull();
+  });
+
+  /* Botones */
+  btnPrev.addEventListener('click', prev);
+  btnNext.addEventListener('click', next);
+  btnFull.addEventListener('click', toggleFull);
+
+  /* Deslizar en pantallas táctiles */
+  let x0 = null;
+  document.addEventListener('touchstart', e => x0 = e.touches[0].clientX, {passive:true});
+  document.addEventListener('touchend', e => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 50) (dx < 0 ? next() : prev());
+    x0 = null;
+  });
+
+  window.addEventListener('resize', fit);
+  fit();
+  const fromHash = parseInt(location.hash.replace('#',''), 10);
+  go(isNaN(fromHash) ? 0 : fromHash - 1);
+})();
+</script>
+</body>
+</html>
